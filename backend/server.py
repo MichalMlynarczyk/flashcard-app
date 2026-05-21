@@ -233,6 +233,9 @@ def get_openai_client():
 
 
 def run_ocr(image):
+    if isinstance(image, np.ndarray) and len(image.shape) == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+
     try:
         return get_ocr().ocr(image, cls=True)
     except TypeError as error:
