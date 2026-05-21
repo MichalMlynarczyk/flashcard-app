@@ -111,7 +111,13 @@ def extract_words_from_image(ocr, image_path):
         raise RuntimeError(f"Nie udało się wczytać strony: {image_path}")
 
     height, width = image.shape[:2]
-    result = ocr.ocr(str(image_path), cls=True)
+    try:
+        result = ocr.ocr(str(image_path), cls=True)
+    except TypeError as error:
+        if "cls" not in str(error):
+            raise
+
+        result = ocr.ocr(str(image_path))
     words = []
 
     if result:

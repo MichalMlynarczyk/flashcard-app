@@ -230,6 +230,16 @@ def get_openai_client():
     return openai_client
 
 
+def run_ocr(image):
+    try:
+        return get_ocr().ocr(image, cls=True)
+    except TypeError as error:
+        if "cls" not in str(error):
+            raise
+
+        return get_ocr().ocr(image)
+
+
 def read_json_file(path):
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
@@ -558,7 +568,7 @@ def get_book_page_words(filename, page):
         return jsonify({"error": "Nie udało się wczytać strony."}), 500
 
     height, width = image.shape[:2]
-    result = get_ocr().ocr(output_path, cls=True)
+    result = run_ocr(output_path)
     words = []
 
     if not result:
@@ -1360,7 +1370,7 @@ def extract_words():
         if LAST_BITMAP is None:
             return {"error": "Brak obrazu"}, 400
 
-        result = get_ocr().ocr(LAST_BITMAP, cls=True)
+        result = run_ocr(LAST_BITMAP)
 
         ocr_items = []
 
@@ -1669,10 +1679,7 @@ def extract_text():
     if LAST_BITMAP is None:
         return {"error":"Brak obrazu"}, 400
 
-    result = get_ocr().ocr(
-        LAST_BITMAP,
-        cls=True
-    )
+    result = run_ocr(LAST_BITMAP)
 
     text_blocks = []
 
