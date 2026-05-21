@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+.reader-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.reader-scroll::-webkit-scrollbar {
+  display: none;
+}

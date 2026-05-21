@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.git
+**/.DS_Store
+**/__pycache__
+**/*.pyc
+backend/books
+backend/prepared_books
+backend/wordse.db
+backend/.env
+processed_images

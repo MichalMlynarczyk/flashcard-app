@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/wordse.db:/app/wordse.db
+      - ./backend/books:/app/books
+      - ./backend/prepared_books:/app/prepared_books
+      - ./processed_images:/app/processed_images
+    ports:
+      - "5001:5000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./english
+      args:
+        VITE_API_URL: /api
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
