@@ -16,6 +16,98 @@ OUTPUT_DIR = BASE_DIR / "prepared_books"
 WORD_PATTERN = re.compile(r"[A-Za-z]+(?:[-'][A-Za-z]+)?")
 
 
+def get_ocr_value(source, key, default=None):
+    if isinstance(source, dict):
+        return source.get(key, default)
+
+    if hasattr(source, "get"):
+        try:
+            return source.get(key, default)
+        except TypeError:
+            return default
+
+    return default
+
+
+def box_to_points(box):
+    if box is None:
+        return []
+
+    if hasattr(box, "tolist"):
+        box = box.tolist()
+
+    if len(box) == 4 and all(isinstance(value, (int, float)) for value in box):
+        x1, y1, x2, y2 = box
+        return [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+
+    points = []
+
+    for point in box:
+        if hasattr(point, "tolist"):
+            point = point.tolist()
+
+        if isinstance(point, (list, tuple)) and len(point) >= 2:
+            points.append([float(point[0]), float(point[1])])
+
+    return points
+
+
+def iter_ocr_items(result):
+    if not result:
+        return
+
+    pages = result if isinstance(result, list) else [result]
+
+    for page in pages:
+        texts = get_ocr_value(page, "rec_texts")
+
+        if texts is not None:
+            scores = get_ocr_value(page, "rec_scores", [])
+            boxes = (
+                get_ocr_value(page, "rec_polys")
+                or get_ocr_value(page, "dt_polys")
+                or get_ocr_value(page, "rec_boxes")
+                or []
+            )
+
+            for index, text in enumerate(texts):
+                if not text:
+                    continue
+
+                yield {
+                    "text": text,
+                    "confidence": float(scores[index]) if index < len(scores) else 1.0,
+                    "points": box_to_points(boxes[index]) if index < len(boxes) else [],
+                }
+
+            continue
+
+        if not page:
+            continue
+
+        for line in page:
+            if not isinstance(line, (list, tuple)) or len(line) < 2:
+                continue
+
+            recognition = line[1]
+
+            if isinstance(recognition, (list, tuple)) and recognition:
+                text = recognition[0]
+                confidence = recognition[1] if len(recognition) > 1 else 1.0
+            else:
+                text = recognition
+                confidence = 1.0
+
+            if not text:
+                continue
+
+            yield {
+                "text": text,
+                "confidence": float(confidence),
+                "points": box_to_points(line[0]),
+            }
+
+
 def slugify(value):
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
     return slug or "book"
@@ -120,40 +212,39 @@ def extract_words_from_image(ocr, image_path):
         result = ocr.ocr(str(image_path))
     words = []
 
-    if result:
-        for page_result in result:
-            if not page_result:
-                continue
+    for item in iter_ocr_items(result):
+        text = item["text"]
+        confidence = item["confidence"]
+        box = item["points"]
 
-            for line in page_result:
-                text = line[1][0]
-                confidence = float(line[1][1])
-                box = line[0]
-                xs = [point[0] for point in box]
-                ys = [point[1] for point in box]
-                x_min = min(xs)
-                x_max = max(xs)
-                y_min = min(ys)
-                y_max = max(ys)
-                text_length = max(len(text), 1)
+        if len(box) < 2:
+            continue
 
-                for match in WORD_PATTERN.finditer(text):
-                    word = match.group(0)
-                    word_x = x_min + (x_max - x_min) * (
-                        match.start() / text_length
-                    )
-                    word_width = (x_max - x_min) * (len(word) / text_length)
+        xs = [point[0] for point in box]
+        ys = [point[1] for point in box]
+        x_min = min(xs)
+        x_max = max(xs)
+        y_min = min(ys)
+        y_max = max(ys)
+        text_length = max(len(text), 1)
 
-                    words.append(
-                        {
-                            "text": word,
-                            "x": word_x,
-                            "y": y_min,
-                            "width": max(word_width, 12),
-                            "height": max(y_max - y_min, 12),
-                            "confidence": confidence,
-                        }
-                    )
+        for match in WORD_PATTERN.finditer(text):
+            word = match.group(0)
+            word_x = x_min + (x_max - x_min) * (
+                match.start() / text_length
+            )
+            word_width = (x_max - x_min) * (len(word) / text_length)
+
+            words.append(
+                {
+                    "text": word,
+                    "x": word_x,
+                    "y": y_min,
+                    "width": max(word_width, 12),
+                    "height": max(y_max - y_min, 12),
+                    "confidence": confidence,
+                }
+            )
 
     return {
         "width": width,
