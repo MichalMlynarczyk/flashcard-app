@@ -4,6 +4,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  Maximize2,
+  Minimize2,
   Plus,
   RotateCcw,
   X,
@@ -29,8 +31,6 @@ const PAGE_ZOOM_STEP = 0.25;
 const WORD_POPUP_WIDTH = 352;
 const WORD_POPUP_ESTIMATED_HEIGHT = 300;
 const WORD_POPUP_MARGIN = 12;
-const WORD_LONG_PRESS_MS = 1000;
-const WORD_LONG_PRESS_MOVE_LIMIT = 12;
 const PAGE_SWIPE_THRESHOLD = 72;
 const PAGE_SWIPE_VERTICAL_RATIO = 1.35;
 const COARSE_POINTER_QUERY = "(pointer: coarse)";
@@ -214,11 +214,6 @@ function BookPreview({
     startY: 0,
     wasDragged: false,
   });
-  const longPressRef = useRef({
-    timer: null,
-    startX: 0,
-    startY: 0,
-  });
   const translationRequestRef = useRef(0);
   const [pageWords, setPageWords] = useState([]);
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
@@ -234,6 +229,7 @@ function BookPreview({
   const [readerError, setReaderError] = useState("");
   const [pageZoom, setPageZoom] = useState(1);
   const [isPanningPage, setIsPanningPage] = useState(false);
+  const [isReadingFullscreen, setIsReadingFullscreen] = useState(false);
   const pageRenderedWidth = pageViewportSize.width
     ? pageViewportSize.width * pageZoom
     : 0;
@@ -301,12 +297,6 @@ function BookPreview({
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      clearWordLongPress();
-    };
-  }, []);
-
   async function saveSelectedWord(event) {
     event.preventDefault();
 
@@ -367,63 +357,6 @@ function BookPreview({
     return window.matchMedia?.(COARSE_POINTER_QUERY).matches ?? false;
   }
 
-  function clearWordLongPress() {
-    if (longPressRef.current.timer) {
-      window.clearTimeout(longPressRef.current.timer);
-    }
-
-    longPressRef.current = {
-      timer: null,
-      startX: 0,
-      startY: 0,
-    };
-  }
-
-  function startWordPress(word, event) {
-    if (!isCoarsePointer()) {
-      event.stopPropagation();
-      return;
-    }
-
-    clearWordLongPress();
-
-    longPressRef.current = {
-      timer: window.setTimeout(() => {
-        selectWord(word, {
-          clientX: event.clientX,
-          clientY: event.clientY,
-          stopPropagation() {},
-        });
-        clearWordLongPress();
-      }, WORD_LONG_PRESS_MS),
-      startX: event.clientX,
-      startY: event.clientY,
-    };
-  }
-
-  function moveWordPress(event) {
-    if (!isCoarsePointer() || !longPressRef.current.timer) return;
-
-    const distanceX = event.clientX - longPressRef.current.startX;
-    const distanceY = event.clientY - longPressRef.current.startY;
-
-    if (
-      Math.abs(distanceX) > WORD_LONG_PRESS_MOVE_LIMIT ||
-      Math.abs(distanceY) > WORD_LONG_PRESS_MOVE_LIMIT
-    ) {
-      clearWordLongPress();
-    }
-  }
-
-  function stopWordPress(word, event) {
-    if (isCoarsePointer()) {
-      clearWordLongPress();
-      return;
-    }
-
-    selectWord(word, event);
-  }
-
   async function selectWord(word, event) {
     event.stopPropagation();
 
@@ -480,7 +413,7 @@ function BookPreview({
   function startPagePan(event) {
     if (
       event.target.closest(
-        "form, input, textarea, select, button:not([data-word-hit])"
+        "form, input, textarea, select, button, [data-word-hit]"
       )
     ) {
       return;
@@ -514,7 +447,6 @@ function BookPreview({
 
     if (Math.abs(distanceX) > 4 || Math.abs(distanceY) > 4) {
       pan.wasDragged = true;
-      clearWordLongPress();
       setIsPanningPage(true);
     }
 
@@ -556,13 +488,32 @@ function BookPreview({
   }
 
   return (
-    <div className="relative left-1/2 w-screen max-w-none -translate-x-1/2 space-y-4 px-0 sm:px-4 xl:w-full xl:translate-x-0 xl:left-0">
-      {readerError && (
+    <div
+      className={
+        isReadingFullscreen
+          ? "fixed inset-0 z-[60] w-screen bg-slate-950"
+          : "relative left-1/2 w-screen max-w-none -translate-x-1/2 space-y-4 px-0 sm:px-4 xl:left-0 xl:w-full xl:translate-x-0"
+      }
+    >
+      {isReadingFullscreen && (
+        <button
+          type="button"
+          onClick={() => setIsReadingFullscreen(false)}
+          className="fixed right-4 top-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-slate-950/55 text-white shadow-xl shadow-black/30 backdrop-blur transition hover:bg-slate-900/80"
+          aria-label="Pokaż przyciski czytnika"
+          title="Pokaż przyciski"
+        >
+          <Minimize2 className="h-5 w-5" />
+        </button>
+      )}
+
+      {!isReadingFullscreen && readerError && (
         <section className="mx-4 rounded-3xl border border-red-500/20 bg-red-500/10 p-5 text-red-300 sm:mx-0">
           {readerError}
         </section>
       )}
 
+      {!isReadingFullscreen && (
       <section className="flex flex-wrap items-center justify-center gap-3">
         <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 p-2">
           <button
@@ -602,7 +553,18 @@ function BookPreview({
             <RotateCcw className="h-5 w-5" />
           </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setIsReadingFullscreen(true)}
+          className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-600 text-white shadow-lg shadow-violet-950/40 transition hover:bg-violet-500"
+          aria-label="Pełny ekran czytania"
+          title="Pełny ekran czytania"
+        >
+          <Maximize2 className="h-6 w-6" />
+        </button>
       </section>
+      )}
 
       <section
         ref={pageViewportRef}
@@ -610,7 +572,11 @@ function BookPreview({
         onPointerMove={movePagePan}
         onPointerUp={stopPagePan}
         onPointerCancel={stopPagePan}
-        className={`reader-scroll h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:rounded-3xl sm:border sm:h-[calc(100dvh-13rem)] xl:h-[calc(100dvh-12rem)] ${
+        className={`reader-scroll touch-none overflow-auto bg-slate-900/80 ${
+          isReadingFullscreen
+            ? "h-dvh min-h-0 border-0"
+            : "h-[calc(100dvh-11.5rem)] min-h-[30rem] border-y border-white/10 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
+        } ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
@@ -644,10 +610,8 @@ function BookPreview({
                   key={`${word.text}-${index}-${currentPage}`}
                   type="button"
                   data-word-hit="true"
-                  onPointerDown={(event) => startWordPress(word, event)}
-                  onPointerMove={moveWordPress}
-                  onPointerUp={(event) => stopWordPress(word, event)}
-                  onPointerCancel={clearWordLongPress}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onPointerUp={(event) => selectWord(word, event)}
                   title={`Dodaj "${word.text}"`}
                   className={`absolute rounded-sm transition hover:bg-violet-500/25 hover:ring-2 hover:ring-violet-500/70 ${
                     selected ? "bg-violet-500/25 ring-2 ring-violet-500" : ""
@@ -740,6 +704,7 @@ function BookPreview({
           document.body
         )}
 
+      {!isReadingFullscreen && (
       <section className="grid grid-cols-2 gap-3 px-4 sm:flex sm:flex-wrap sm:justify-center sm:px-0">
         <button
           type="button"
@@ -786,6 +751,7 @@ function BookPreview({
           <ChevronRight className="h-5 w-5" />
         </button>
       </section>
+      )}
     </div>
   );
 }
