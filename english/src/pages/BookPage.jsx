@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   BookOpen,
   Bookmark,
   ChevronLeft,
@@ -30,6 +29,11 @@ const PAGE_ZOOM_STEP = 0.25;
 const WORD_POPUP_WIDTH = 352;
 const WORD_POPUP_ESTIMATED_HEIGHT = 300;
 const WORD_POPUP_MARGIN = 12;
+const WORD_LONG_PRESS_MS = 1000;
+const WORD_LONG_PRESS_MOVE_LIMIT = 12;
+const PAGE_SWIPE_THRESHOLD = 72;
+const PAGE_SWIPE_VERTICAL_RATIO = 1.35;
+const COARSE_POINTER_QUERY = "(pointer: coarse)";
 
 export default function BookPage() {
   const [books, setBooks] = useState([]);
@@ -210,6 +214,11 @@ function BookPreview({
     startY: 0,
     wasDragged: false,
   });
+  const longPressRef = useRef({
+    timer: null,
+    startX: 0,
+    startY: 0,
+  });
   const translationRequestRef = useRef(0);
   const [pageWords, setPageWords] = useState([]);
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
@@ -224,10 +233,6 @@ function BookPreview({
   const [isSavingWord, setIsSavingWord] = useState(false);
   const [readerError, setReaderError] = useState("");
   const [pageZoom, setPageZoom] = useState(1);
-  const [pageJumpInput, setPageJumpInput] = useState({
-    page: currentPage,
-    value: currentPage.toString(),
-  });
   const [isPanningPage, setIsPanningPage] = useState(false);
   const pageRenderedWidth = pageViewportSize.width
     ? pageViewportSize.width * pageZoom
@@ -235,10 +240,6 @@ function BookPreview({
   const pageRenderedHeight = pageViewportSize.height
     ? pageViewportSize.height * pageZoom
     : 0;
-  const pageJumpValue =
-    pageJumpInput.page === currentPage
-      ? pageJumpInput.value
-      : currentPage.toString();
   const isCurrentPageBookmarked = bookmarkedPage === currentPage;
 
   useEffect(() => {
@@ -300,6 +301,12 @@ function BookPreview({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      clearWordLongPress();
+    };
+  }, []);
+
   async function saveSelectedWord(event) {
     event.preventDefault();
 
@@ -349,25 +356,72 @@ function BookPreview({
     setReaderError("");
   }
 
-  function goToPage(event) {
-    event.preventDefault();
-
-    const requestedPage = Number(pageJumpValue);
-
-    if (!Number.isInteger(requestedPage)) {
-      setReaderError("Wpisz poprawny numer strony.");
-      return;
-    }
-
-    setReaderError("");
-    onChangePage(requestedPage);
-  }
-
   function goToBookmark() {
     if (!bookmarkedPage) return;
 
     setReaderError("");
     onChangePage(bookmarkedPage);
+  }
+
+  function isCoarsePointer() {
+    return window.matchMedia?.(COARSE_POINTER_QUERY).matches ?? false;
+  }
+
+  function clearWordLongPress() {
+    if (longPressRef.current.timer) {
+      window.clearTimeout(longPressRef.current.timer);
+    }
+
+    longPressRef.current = {
+      timer: null,
+      startX: 0,
+      startY: 0,
+    };
+  }
+
+  function startWordPress(word, event) {
+    if (!isCoarsePointer()) {
+      event.stopPropagation();
+      return;
+    }
+
+    clearWordLongPress();
+
+    longPressRef.current = {
+      timer: window.setTimeout(() => {
+        selectWord(word, {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          stopPropagation() {},
+        });
+        clearWordLongPress();
+      }, WORD_LONG_PRESS_MS),
+      startX: event.clientX,
+      startY: event.clientY,
+    };
+  }
+
+  function moveWordPress(event) {
+    if (!isCoarsePointer() || !longPressRef.current.timer) return;
+
+    const distanceX = event.clientX - longPressRef.current.startX;
+    const distanceY = event.clientY - longPressRef.current.startY;
+
+    if (
+      Math.abs(distanceX) > WORD_LONG_PRESS_MOVE_LIMIT ||
+      Math.abs(distanceY) > WORD_LONG_PRESS_MOVE_LIMIT
+    ) {
+      clearWordLongPress();
+    }
+  }
+
+  function stopWordPress(word, event) {
+    if (isCoarsePointer()) {
+      clearWordLongPress();
+      return;
+    }
+
+    selectWord(word, event);
   }
 
   async function selectWord(word, event) {
@@ -426,7 +480,7 @@ function BookPreview({
   function startPagePan(event) {
     if (
       event.target.closest(
-        "form, input, textarea, select, button, [data-word-hit]"
+        "form, input, textarea, select, button:not([data-word-hit])"
       )
     ) {
       return;
@@ -460,6 +514,7 @@ function BookPreview({
 
     if (Math.abs(distanceX) > 4 || Math.abs(distanceY) > 4) {
       pan.wasDragged = true;
+      clearWordLongPress();
       setIsPanningPage(true);
     }
 
@@ -476,10 +531,24 @@ function BookPreview({
 
     if (!pan.isDragging) return;
 
+    const distanceX = event.clientX - pan.startX;
+    const distanceY = event.clientY - pan.startY;
+
     pan.isDragging = false;
 
     if (pan.wasDragged) {
       pan.lastDragEndedAt = Date.now();
+    }
+
+    if (
+      isCoarsePointer() &&
+      pageZoom === 1 &&
+      pan.wasDragged &&
+      Math.abs(distanceX) > PAGE_SWIPE_THRESHOLD &&
+      Math.abs(distanceX) > Math.abs(distanceY) * PAGE_SWIPE_VERTICAL_RATIO
+    ) {
+      setReaderError("");
+      onChangePage(distanceX < 0 ? currentPage + 1 : currentPage - 1);
     }
 
     setIsPanningPage(false);
@@ -575,8 +644,10 @@ function BookPreview({
                   key={`${word.text}-${index}-${currentPage}`}
                   type="button"
                   data-word-hit="true"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onPointerUp={(event) => selectWord(word, event)}
+                  onPointerDown={(event) => startWordPress(word, event)}
+                  onPointerMove={moveWordPress}
+                  onPointerUp={(event) => stopWordPress(word, event)}
+                  onPointerCancel={clearWordLongPress}
                   title={`Dodaj "${word.text}"`}
                   className={`absolute rounded-sm transition hover:bg-violet-500/25 hover:ring-2 hover:ring-violet-500/70 ${
                     selected ? "bg-violet-500/25 ring-2 ring-violet-500" : ""
