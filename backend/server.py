@@ -217,7 +217,8 @@ def get_ocr():
     if ocr is None:
         ocr = PaddleOCR(
             use_angle_cls=True,
-            lang="en"
+            lang="en",
+            enable_mkldnn=False,
         )
 
     return ocr

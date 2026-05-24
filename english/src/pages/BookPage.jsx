@@ -213,7 +213,10 @@ function BookPreview({
   const translationRequestRef = useRef(0);
   const [pageWords, setPageWords] = useState([]);
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
-  const [pageViewportWidth, setPageViewportWidth] = useState(0);
+  const [pageViewportSize, setPageViewportSize] = useState({
+    width: 0,
+    height: 0,
+  });
   const [selectedWord, setSelectedWord] = useState(null);
   const [polish, setPolish] = useState("");
   const [isTranslatingWord, setIsTranslatingWord] = useState(false);
@@ -226,11 +229,12 @@ function BookPreview({
     value: currentPage.toString(),
   });
   const [isPanningPage, setIsPanningPage] = useState(false);
-  const pageBaseWidth =
-    pageSize.width > 0 && pageViewportWidth > 0
-      ? Math.min(pageSize.width, pageViewportWidth)
-      : pageSize.width;
-  const pageRenderedWidth = pageBaseWidth ? pageBaseWidth * pageZoom : 0;
+  const pageRenderedWidth = pageViewportSize.width
+    ? pageViewportSize.width * pageZoom
+    : 0;
+  const pageRenderedHeight = pageViewportSize.height
+    ? pageViewportSize.height * pageZoom
+    : 0;
   const pageJumpValue =
     pageJumpInput.page === currentPage
       ? pageJumpInput.value
@@ -279,13 +283,16 @@ function BookPreview({
 
     if (!viewport) return undefined;
 
-    function updateViewportWidth() {
-      setPageViewportWidth(viewport.clientWidth);
+    function updateViewportSize() {
+      setPageViewportSize({
+        width: viewport.clientWidth,
+        height: viewport.clientHeight,
+      });
     }
 
-    updateViewportWidth();
+    updateViewportSize();
 
-    const observer = new ResizeObserver(updateViewportWidth);
+    const observer = new ResizeObserver(updateViewportSize);
     observer.observe(viewport);
 
     return () => {
@@ -480,77 +487,9 @@ function BookPreview({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={onBackToBooks}
-            className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-slate-400 transition hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Wróć do książek
-          </button>
-
-          <h1 className="break-words text-3xl font-bold text-white">
-            {book.title}
-          </h1>
-
-          <p className="mt-2 text-slate-400">
-            Strona {currentPage} z {pageCount}
-            {bookmarkedPage && ` • zakładka: ${bookmarkedPage}`}
-          </p>
-
-          <p className="mt-2 text-sm text-slate-500">
-            {isLoadingWords
-              ? "Odczytywanie słów na stronie..."
-              : "Kliknij słowo na stronie, aby dodać je do fiszek."}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 md:items-end">
-          <p className="rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-200">
-            Baza fiszek: {book.title}
-          </p>
-
-          <form
-            onSubmit={goToPage}
-            className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end"
-          >
-            <label
-              htmlFor="book-page-jump"
-              className="text-sm font-semibold text-slate-300"
-            >
-              Przenieś na stronę
-            </label>
-
-            <input
-              id="book-page-jump"
-              type="number"
-              min="1"
-              max={pageCount}
-              value={pageJumpValue}
-              onChange={(event) =>
-                setPageJumpInput({
-                  page: currentPage,
-                  value: event.target.value,
-                })
-              }
-              className="h-11 w-24 rounded-xl border border-white/10 bg-slate-950/80 px-3 text-center font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-violet-500"
-            />
-
-            <button
-              type="submit"
-              className="h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"
-            >
-              Przenieś
-            </button>
-          </form>
-        </div>
-      </section>
-
+    <div className="relative left-1/2 w-screen max-w-none -translate-x-1/2 space-y-4 px-0 sm:px-4 xl:w-full xl:translate-x-0 xl:left-0">
       {readerError && (
-        <section className="rounded-3xl border border-red-500/20 bg-red-500/10 p-5 text-red-300">
+        <section className="mx-4 rounded-3xl border border-red-500/20 bg-red-500/10 p-5 text-red-300 sm:mx-0">
           {readerError}
         </section>
       )}
@@ -602,26 +541,29 @@ function BookPreview({
         onPointerMove={movePagePan}
         onPointerUp={stopPagePan}
         onPointerCancel={stopPagePan}
-        className={`reader-scroll max-h-[82vh] touch-none overflow-auto rounded-2xl border border-white/10 bg-slate-900/80 p-2 sm:rounded-3xl sm:p-4 ${
+        className={`reader-scroll h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:rounded-3xl sm:border sm:h-[calc(100dvh-13rem)] xl:h-[calc(100dvh-12rem)] ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
         <div
           ref={pageFrameRef}
-          className="relative inline-block align-top"
+          className="relative block h-full align-top"
           style={{
             marginInline:
-              pageRenderedWidth > 0 && pageRenderedWidth <= pageViewportWidth
+              pageRenderedWidth > 0 &&
+              pageRenderedWidth <= pageViewportSize.width
                 ? "auto"
                 : "0",
             width: pageRenderedWidth > 0 ? `${pageRenderedWidth}px` : undefined,
+            height:
+              pageRenderedHeight > 0 ? `${pageRenderedHeight}px` : undefined,
           }}
         >
           <img
             key={`${book.filename}-${currentPage}`}
             src={previewUrl}
             alt={`${book.title} - strona ${currentPage}`}
-            className="block w-full rounded-2xl bg-white object-contain"
+            className="block h-full w-full bg-white"
           />
 
           {pageSize.width > 0 &&
@@ -727,7 +669,7 @@ function BookPreview({
           document.body
         )}
 
-      <section className="flex flex-wrap justify-center gap-3">
+      <section className="grid grid-cols-2 gap-3 px-4 sm:flex sm:flex-wrap sm:justify-center sm:px-0">
         <button
           type="button"
           onClick={() => onChangePage(currentPage - 1)}
@@ -757,10 +699,10 @@ function BookPreview({
           type="button"
           onClick={goToBookmark}
           disabled={!bookmarkedPage || bookmarkedPage === currentPage}
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Bookmark className="h-5 w-5" />
-          Przenieś do zakładki
+          <span className="truncate">Przenieś do zakładki</span>
         </button>
 
         <button
