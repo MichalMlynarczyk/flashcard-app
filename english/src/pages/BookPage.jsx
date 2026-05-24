@@ -411,6 +411,8 @@ function BookPreview({
   }
 
   function startPagePan(event) {
+    if (isReadingFullscreen) return;
+
     if (
       event.target.closest(
         "form, input, textarea, select, button, [data-word-hit]"
@@ -572,10 +574,10 @@ function BookPreview({
         onPointerMove={movePagePan}
         onPointerUp={stopPagePan}
         onPointerCancel={stopPagePan}
-        className={`reader-scroll touch-none overflow-auto bg-slate-900/80 ${
+        className={`reader-scroll ${
           isReadingFullscreen
-            ? "h-dvh min-h-0 border-0"
-            : "h-[calc(100dvh-11.5rem)] min-h-[30rem] border-y border-white/10 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
+            ? "reader-scroll-visible h-dvh min-h-0 touch-auto overflow-auto border-0 bg-slate-100 pb-24"
+            : "h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
         } ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -629,6 +631,45 @@ function BookPreview({
 
         </div>
       </section>
+
+      {isReadingFullscreen && (
+        <section className="fixed inset-x-3 bottom-3 z-[70] mx-auto grid max-w-md grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-slate-950/55 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => onChangePage(currentPage - 1)}
+            disabled={currentPage <= 1}
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <ChevronLeft className="h-4 w-4 shrink-0" />
+            <span className="truncate">Powrót</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onAddBookmark}
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20"
+          >
+            <Bookmark
+              className={`h-4 w-4 shrink-0 ${
+                isCurrentPageBookmarked
+                  ? "fill-red-500 text-red-500"
+                  : "text-white"
+              }`}
+            />
+            <span className="truncate">Zakładka</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onChangePage(currentPage + 1)}
+            disabled={currentPage >= pageCount}
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-violet-600/90 px-2 py-2.5 text-sm font-semibold transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <span className="truncate">Dalej</span>
+            <ChevronRight className="h-4 w-4 shrink-0" />
+          </button>
+        </section>
+      )}
 
       {selectedWord &&
         typeof document !== "undefined" &&
