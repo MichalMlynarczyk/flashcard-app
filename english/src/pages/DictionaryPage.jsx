@@ -260,7 +260,7 @@ export default function DictionaryPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="min-w-0 space-y-8">
       <DictionaryPageDescription totalWords={pagination.total} />
 
       <FilterBar
@@ -387,8 +387,8 @@ function FilterBar({
   onSearchChange,
 }) {
   return (
-    <section className="flex flex-wrap gap-4">
-      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4">
+    <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4">
         <Search className="h-5 w-5 shrink-0 text-slate-500" />
 
         <input
@@ -400,12 +400,12 @@ function FilterBar({
         />
       </div>
 
-      <label className="flex min-w-[180px] items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
+      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
         Baza
         <select
           value={selectedBaseId}
           onChange={onBaseChange}
-          className="max-w-44 bg-transparent font-semibold text-white outline-none"
+          className="min-w-0 max-w-44 bg-transparent font-semibold text-white outline-none"
         >
           <option className="bg-slate-900" value="">
             Wszystkie
@@ -418,7 +418,7 @@ function FilterBar({
         </select>
       </label>
 
-      <label className="flex min-w-[180px] items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
+      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
         Na stronę
         <select
           value={perPage}
@@ -486,31 +486,28 @@ function Dictionary({
         <div
           key={item.id}
           onClick={() => onToggleWordSelection(item.id)}
-          className={`relative w-full cursor-pointer rounded-3xl border p-6 text-left transition duration-200 hover:scale-[1.02] ${
+          className={`relative w-full min-w-0 cursor-pointer rounded-3xl border p-5 text-left transition duration-200 sm:p-6 sm:hover:scale-[1.02] ${
             selected
-              ? "border-violet-500/50 bg-violet-500/10"
+              ? "border-violet-500/50 bg-violet-500/10 ring-2 ring-violet-500/20"
               : "border-white/10 bg-slate-900/80"
           }`}
-          style={{
-            transform: selected ? "scale(1.05)" : undefined,
-          }}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="break-words text-2xl font-bold">
+              <div className="flex min-w-0 items-center gap-2">
+                <h3 className="min-w-0 text-2xl font-bold [overflow-wrap:anywhere]">
                   {item.english}
                 </h3>
 
                 <Camera className="h-4 w-4 shrink-0 text-slate-500" />
               </div>
 
-              <p className="mt-2 break-words text-3xl text-slate-400">
+              <p className="mt-2 min-w-0 text-3xl text-slate-400 [overflow-wrap:anywhere]">
                 {item.polish}
               </p>
             </div>
 
-            <span className="w-fit shrink-0 rounded-full bg-violet-500/20 px-4 py-2 text-sm font-bold text-violet-300">
+            <span className="w-fit max-w-full shrink-0 rounded-full bg-violet-500/20 px-4 py-2 text-sm font-bold text-violet-300 [overflow-wrap:anywhere]">
               {item.baseName}
             </span>
           </div>
@@ -580,33 +577,33 @@ function Pagination({ page, perPage, total, totalPages, onPageChange }) {
   const end = Math.min(page * perPage, total);
 
   return (
-    <section className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:flex-row sm:items-center sm:justify-between">
+    <section className="grid gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
       <p className="text-sm font-medium text-slate-400">
         Pokazano {start}-{end} z {total}
       </p>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => onPageChange(page - 1)}
-          disabled={page <= 1}
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <ChevronLeft className="h-5 w-5" />
-          Poprzednia
-        </button>
-
-        <span className="min-w-20 text-center text-sm font-semibold text-slate-300">
+      <div className="grid min-w-0 grid-cols-2 gap-3 sm:flex sm:items-center">
+        <span className="col-span-2 text-center text-sm font-semibold text-slate-300 sm:order-2 sm:min-w-20">
           {page}/{totalPages}
         </span>
 
         <button
           type="button"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 sm:order-1 sm:px-4"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          <span className="truncate">Poprzednia</span>
+        </button>
+
+        <button
+          type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-3 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:order-3 sm:px-4"
         >
-          Następna
+          <span className="truncate">Następna</span>
           <ChevronRight className="h-5 w-5" />
         </button>
       </div>

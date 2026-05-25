@@ -5,7 +5,8 @@ import PreviewImageView from "./PreviewImageView";
 
 export default function ScanSection() {
   const {
-    inputRef,
+    cameraInputRef,
+    libraryInputRef,
     imageRef,
     imageFile,
     previewUrl,
@@ -30,7 +31,8 @@ export default function ScanSection() {
     handleImageClick,
     handleInputChange,
     movePoint,
-    openFilePicker,
+    openCameraPicker,
+    openLibraryPicker,
     rotateLeft,
     rotateRight,
     removeImage,
@@ -57,7 +59,7 @@ export default function ScanSection() {
       }`}
     >
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
@@ -65,7 +67,20 @@ export default function ScanSection() {
         className="hidden"
       />
 
-      {!hasImage && <EmptyScanState onSelectImage={openFilePicker} />}
+      <input
+        ref={libraryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleInputChange}
+        className="hidden"
+      />
+
+      {!hasImage && (
+        <EmptyScanState
+          onSelectFromLibrary={openLibraryPicker}
+          onTakePhoto={openCameraPicker}
+        />
+      )}
 
       {previewUrl && (
         <PreviewImageView
@@ -74,7 +89,8 @@ export default function ScanSection() {
           previewUrl={previewUrl}
           rotationDegrees={rotationDegrees}
           scanError={failedAction === "scan" ? scanError : ""}
-          onChangeImage={openFilePicker}
+          onSelectFromLibrary={openLibraryPicker}
+          onTakePhoto={openCameraPicker}
           onProcessImage={sendImageToServer}
           onRemoveImage={removeImage}
           onRetry={retryFailedAction}

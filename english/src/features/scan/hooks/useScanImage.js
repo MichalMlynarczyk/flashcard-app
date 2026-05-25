@@ -6,7 +6,8 @@ import {
 } from "../../words/services/wordsApi";
 
 export default function useScanImage() {
-  const inputRef = useRef(null);
+  const cameraInputRef = useRef(null);
+  const libraryInputRef = useRef(null);
   const imageRef = useRef(null);
 
   const [imageFile, setImageFile] = useState(null);
@@ -76,9 +77,11 @@ export default function useScanImage() {
     setScanError("");
     setFailedAction(null);
 
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
+    [cameraInputRef, libraryInputRef].forEach((inputRef) => {
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
+    });
   }
 
   async function sendImageToServer() {
@@ -252,7 +255,8 @@ export default function useScanImage() {
   }
 
   return {
-    inputRef,
+    cameraInputRef,
+    libraryInputRef,
     imageRef,
     imageFile,
     previewUrl,
@@ -277,7 +281,8 @@ export default function useScanImage() {
     handleImageClick,
     handleInputChange,
     movePoint,
-    openFilePicker: () => inputRef.current?.click(),
+    openCameraPicker: () => cameraInputRef.current?.click(),
+    openLibraryPicker: () => libraryInputRef.current?.click(),
     rotateLeft: () =>
       setRotationDegrees((currentRotation) => (currentRotation + 270) % 360),
     rotateRight: () =>

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, Layers, Shuffle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   fetchAllWords,
@@ -8,10 +8,12 @@ import {
 export default function FlashPage() {
   const [bases, setBases] = useState([]);
   const [selectedBaseId, setSelectedBaseId] = useState(null);
+  const [orderedWords, setOrderedWords] = useState([]);
   const [words, setWords] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [frontLanguage, setFrontLanguage] = useState("english");
+  const [isShuffled, setIsShuffled] = useState(false);
   const [isLoadingBases, setIsLoadingBases] = useState(true);
   const [isLoadingWords, setIsLoadingWords] = useState(false);
   const [error, setError] = useState("");
@@ -49,6 +51,7 @@ export default function FlashPage() {
     setSelectedBaseId(baseId);
     setIsLoadingWords(true);
     setError("");
+    setOrderedWords([]);
     setWords([]);
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -58,7 +61,8 @@ export default function FlashPage() {
         baseId: baseId === "all" ? undefined : baseId,
       });
 
-      setWords(data);
+      setOrderedWords(data);
+      setWords(isShuffled ? shuffleWords(data) : data);
     } catch (loadError) {
       console.error(loadError);
       setError("Nie udało się pobrać fiszek z bazy.");
@@ -96,8 +100,16 @@ export default function FlashPage() {
     setIsFlipped(false);
   }
 
+  function changeShuffleMode(enabled) {
+    setIsShuffled(enabled);
+    setWords(enabled ? shuffleWords(words) : orderedWords);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }
+
   function returnToBaseSelection() {
     setSelectedBaseId(null);
+    setOrderedWords([]);
     setWords([]);
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -125,7 +137,9 @@ export default function FlashPage() {
 
           <FlashDirectionToggle
             frontLanguage={frontLanguage}
+            isShuffled={isShuffled}
             onChange={changeFrontLanguage}
+            onShuffleChange={changeShuffleMode}
           />
 
           <LoadingBar
@@ -149,7 +163,6 @@ export default function FlashPage() {
                 isFlipped={isFlipped}
                 word={currentWord}
                 onFlip={() => setIsFlipped((currentValue) => !currentValue)}
-                onRate={goToNextCard}
               />
 
               <FlashControls
@@ -269,7 +282,12 @@ function LoadingBar({ current, progress, total }) {
   );
 }
 
-function FlashDirectionToggle({ frontLanguage, onChange }) {
+function FlashDirectionToggle({
+  frontLanguage,
+  isShuffled,
+  onChange,
+  onShuffleChange,
+}) {
   const options = [
     { label: "Angielski", value: "english" },
     { label: "Polski", value: "polish" },
@@ -284,32 +302,50 @@ function FlashDirectionToggle({ frontLanguage, onChange }) {
         </p>
       </div>
 
-      <div className="flex rounded-2xl bg-slate-950/80 p-1">
-        {options.map((option) => {
-          const active = frontLanguage === option.value;
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-2xl bg-slate-950/80 p-1">
+          {options.map((option) => {
+            const active = frontLanguage === option.value;
 
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onChange(option.value)}
-              className={`rounded-xl px-5 py-3 text-sm font-bold transition ${
-                active
-                  ? "bg-violet-600 text-white"
-                  : "text-slate-400 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onChange(option.value)}
+                className={`rounded-xl px-5 py-3 text-sm font-bold transition ${
+                  active
+                    ? "bg-violet-600 text-white"
+                    : "text-slate-400 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="inline-flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-950/80 px-4 py-3 text-sm font-bold text-slate-300 transition hover:bg-white/10 hover:text-white">
+          <input
+            type="checkbox"
+            checked={isShuffled}
+            onChange={(event) => onShuffleChange(event.target.checked)}
+            className="sr-only"
+          />
+          <span
+            className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+              isShuffled ? "bg-violet-600 text-white" : "bg-white/10"
+            }`}
+          >
+            <Shuffle className="h-5 w-5" />
+          </span>
+          Mieszaj fiszki
+        </label>
       </div>
     </section>
   );
 }
 
-function FlashCard({ frontLanguage, isFlipped, word, onFlip, onRate }) {
-  const ratingButtons = ["Nie znam", "Słabo", "Dobrze", "Świetnie"];
+function FlashCard({ frontLanguage, isFlipped, word, onFlip }) {
   const frontLabel = frontLanguage === "english" ? "English" : "Polski";
   const backLabel = frontLanguage === "english" ? "Polski" : "English";
   const frontText = frontLanguage === "english" ? word.english : word.polish;
@@ -342,9 +378,7 @@ function FlashCard({ frontLanguage, isFlipped, word, onFlip, onRate }) {
               {frontLabel}
             </p>
 
-            <h2 className="break-words text-center text-4xl font-bold tracking-tight text-white md:text-5xl">
-              {frontText}
-            </h2>
+            <FlashCardText>{frontText}</FlashCardText>
 
             <p className="mt-10 text-base text-slate-600">
               Kliknij aby odkryć
@@ -356,29 +390,29 @@ function FlashCard({ frontLanguage, isFlipped, word, onFlip, onRate }) {
               {backLabel}
             </p>
 
-            <h2 className="break-words text-center text-4xl font-bold tracking-tight text-white md:text-5xl">
-              {backText}
-            </h2>
-
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              {ratingButtons.map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onRate();
-                  }}
-                  className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${getRatingClassName(label)}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <FlashCardText>{backText}</FlashCardText>
           </CardFace>
         </div>
       </div>
     </section>
+  );
+}
+
+function FlashCardText({ children }) {
+  const textLength = children?.toString().length ?? 0;
+  const sizeClassName =
+    textLength > 80
+      ? "text-2xl md:text-3xl"
+      : textLength > 45
+        ? "text-3xl md:text-4xl"
+        : "text-4xl md:text-5xl";
+
+  return (
+    <h2
+      className={`max-h-52 w-full max-w-full overflow-y-auto whitespace-normal px-1 text-center font-bold leading-tight text-white [overflow-wrap:anywhere] md:max-h-60 ${sizeClassName}`}
+    >
+      {children}
+    </h2>
   );
 }
 
@@ -443,10 +477,16 @@ function getSelectedBaseName(selectedBaseId, bases) {
   return bases.find((base) => base.id.toString() === selectedBaseId)?.name ?? "";
 }
 
-function getRatingClassName(label) {
-  if (label === "Nie znam") return "bg-red-500/20 text-red-300 hover:bg-red-500/30";
-  if (label === "Słabo") return "bg-orange-500/20 text-orange-300 hover:bg-orange-500/30";
-  if (label === "Dobrze") return "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30";
+function shuffleWords(words) {
+  const shuffledWords = [...words];
 
-  return "bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30";
+  for (let index = shuffledWords.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [shuffledWords[index], shuffledWords[randomIndex]] = [
+      shuffledWords[randomIndex],
+      shuffledWords[index],
+    ];
+  }
+
+  return shuffledWords;
 }

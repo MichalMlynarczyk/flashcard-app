@@ -1,4 +1,11 @@
-import { AlertTriangle, RotateCcw, RotateCw, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  ImagePlus,
+  RotateCcw,
+  RotateCw,
+  X,
+} from "lucide-react";
 
 export default function PreviewImageView({
   imageFile,
@@ -6,7 +13,8 @@ export default function PreviewImageView({
   previewUrl,
   rotationDegrees,
   scanError,
-  onChangeImage,
+  onSelectFromLibrary,
+  onTakePhoto,
   onProcessImage,
   onRemoveImage,
   onRetry,
@@ -81,13 +89,23 @@ export default function PreviewImageView({
           </button>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={onChangeImage}
-            className="rounded-2xl bg-white/10 px-6 py-3 font-semibold text-white transition hover:bg-white/20"
+            onClick={onTakePhoto}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20"
           >
-            Zmień zdjęcie
+            <Camera className="h-5 w-5" />
+            Aparat
+          </button>
+
+          <button
+            type="button"
+            onClick={onSelectFromLibrary}
+            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20"
+          >
+            <ImagePlus className="h-5 w-5" />
+            Biblioteka
           </button>
 
           <button

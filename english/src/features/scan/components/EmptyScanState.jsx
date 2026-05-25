@@ -1,6 +1,6 @@
-import { Camera, Upload } from "lucide-react";
+import { Camera, ImagePlus } from "lucide-react";
 
-export default function EmptyScanState({ onSelectImage }) {
+export default function EmptyScanState({ onSelectFromLibrary, onTakePhoto }) {
   return (
     <div className="flex flex-col items-center justify-center text-center">
       <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-violet-600/15">
@@ -15,14 +15,25 @@ export default function EmptyScanState({ onSelectImage }) {
         Przeciągnij zdjęcie tutaj albo wybierz je z dysku
       </p>
 
-      <button
-        type="button"
-        onClick={onSelectImage}
-        className="mt-8 inline-flex items-center gap-3 rounded-2xl bg-violet-600 px-6 py-4 text-lg font-semibold text-white transition hover:bg-violet-500"
-      >
-        <Upload className="h-5 w-5" />
-        Wybierz obrazek
-      </button>
+      <div className="mt-8 grid w-full max-w-md gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={onTakePhoto}
+          className="inline-flex items-center justify-center gap-3 rounded-2xl bg-violet-600 px-6 py-4 text-lg font-semibold text-white transition hover:bg-violet-500"
+        >
+          <Camera className="h-5 w-5" />
+          Aparat
+        </button>
+
+        <button
+          type="button"
+          onClick={onSelectFromLibrary}
+          className="inline-flex items-center justify-center gap-3 rounded-2xl bg-white/10 px-6 py-4 text-lg font-semibold text-white transition hover:bg-white/20"
+        >
+          <ImagePlus className="h-5 w-5" />
+          Biblioteka
+        </button>
+      </div>
     </div>
   );
 }
