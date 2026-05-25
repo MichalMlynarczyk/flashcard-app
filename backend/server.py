@@ -1387,7 +1387,7 @@ def translate_word():
     english = (data.get("english") or "").strip()
 
     if not english:
-        return jsonify({"error": "Podaj słowo po angielsku."}), 400
+        return jsonify({"error": "Podaj słowo albo zwrot po angielsku."}), 400
 
     try:
         response = get_openai_client().chat.completions.create(
@@ -1397,7 +1397,21 @@ def translate_word():
                     "role": "system",
                     "content": """
 Jesteś nauczycielem angielskiego dla polskiego użytkownika.
-Przetłumacz pojedyncze angielskie słowo na polski.
+Przetłumacz angielskie słowo albo zwrot na polski.
+
+Zasady:
+- jeśli wejście jest zwrotem, idiomem, kolokacją albo phrasal verb, tłumacz cały zwrot jako całość, a nie słowo po słowie
+- zachowaj sens edukacyjny do fiszek; podawaj naturalny polski odpowiednik w formie słownikowej
+- dla czasowników używaj polskiego bezokolicznika, np. "cierpieć", "opiekować się", "poruszać się"
+- dla rzeczowników używaj podstawowej formy, np. "gardło", "historia"
+- zachowuj placeholdery typu "sb", "sth", "something", "somebody" jako polskie "kogoś", "coś", "kimś", "czymś" zależnie od zwrotu
+- nie dopisuj przykładów, objaśnień ani alternatyw, chyba że są konieczne; wtedy rozdziel je średnikiem
+- przykłady poprawnego podejścia:
+  "suffer from sth" -> "cierpieć na coś"
+  "look after sb" -> "opiekować się kimś"
+  "take care of sb/sth" -> "opiekować się kimś/czymś"
+  "be afraid of sth" -> "bać się czegoś"
+
 Zwróć wyłącznie JSON bez markdown i komentarzy.
 Format:
 {"polish":"tłumaczenie"}
@@ -1480,11 +1494,20 @@ Zasady:
 - poprawiaj błędy OCR
 - poprawiaj polskie znaki: ł, ą, ć, ę, ń, ó, ś, ź, ż
 - poprawiaj polskie końcówki
+- zachowuj angielskie zwroty wielowyrazowe jako jedną fiszkę, np. "suffer from sth", "look after sb", "take care of sth"
+- nie rozbijaj phrasal verbs, idiomów, kolokacji ani wyrażeń z przyimkiem na pojedyncze słowa
+- tłumacz cały zwrot jako całość, a nie ostatnie słowo ani dosłowne części składowe
+- zachowuj placeholdery typu "sb", "sth", "something", "somebody" jako polskie "kogoś", "coś", "kimś", "czymś" zależnie od zwrotu
 - polskie czasowniki zapisuj jako bezokoliczniki, np. "boleć", "kaszleć", "zemdleć"
 - rzeczowniki zapisuj w podstawowej formie, np. "głowa", "ręka", "żołądek"
 - nie zostawiaj form typu "bolet", "kaszlec", "miec"
 - "hurt" tłumacz jako "boleć"
 - "cough" tłumacz jako "kaszleć; kaszel" tylko jeśli tak wynika z tekstu
+- przykłady zwrotów:
+  "suffer from sth" -> "cierpieć na coś"
+  "look after sb" -> "opiekować się kimś"
+  "be allergic to sth" -> "być uczulonym na coś"
+  "have a sore throat" -> "mieć ból gardła"
 - zwracaj wyłącznie JSON
 - bez markdown
 - bez komentarzy

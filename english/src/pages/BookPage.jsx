@@ -230,12 +230,17 @@ function BookPreview({
   const [pageZoom, setPageZoom] = useState(1);
   const [isPanningPage, setIsPanningPage] = useState(false);
   const [isReadingFullscreen, setIsReadingFullscreen] = useState(false);
+  const pageAspectRatio =
+    pageSize.width > 0 && pageSize.height > 0
+      ? pageSize.height / pageSize.width
+      : 0;
   const pageRenderedWidth = pageViewportSize.width
     ? pageViewportSize.width * pageZoom
     : 0;
-  const pageRenderedHeight = pageViewportSize.height
-    ? pageViewportSize.height * pageZoom
-    : 0;
+  const pageRenderedHeight =
+    pageRenderedWidth > 0 && pageAspectRatio > 0
+      ? pageRenderedWidth * pageAspectRatio
+      : 0;
   const isCurrentPageBookmarked = bookmarkedPage === currentPage;
 
   useEffect(() => {
@@ -577,14 +582,14 @@ function BookPreview({
         className={`reader-scroll ${
           isReadingFullscreen
             ? "reader-scroll-visible h-dvh min-h-0 touch-auto overflow-auto border-0 bg-slate-100 pb-24"
-            : "h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
+            : "reader-scroll-visible h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
         } ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
         }`}
       >
         <div
           ref={pageFrameRef}
-          className="relative block h-full align-top"
+          className="relative block min-h-full align-top"
           style={{
             marginInline:
               pageRenderedWidth > 0 &&
@@ -600,7 +605,8 @@ function BookPreview({
             key={`${book.filename}-${currentPage}`}
             src={previewUrl}
             alt={`${book.title} - strona ${currentPage}`}
-            className="block h-full w-full bg-white"
+            draggable={false}
+            className="pointer-events-none block h-full w-full select-none bg-white"
           />
 
           {pageSize.width > 0 &&
@@ -612,8 +618,7 @@ function BookPreview({
                   key={`${word.text}-${index}-${currentPage}`}
                   type="button"
                   data-word-hit="true"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onPointerUp={(event) => selectWord(word, event)}
+                  onClick={(event) => selectWord(word, event)}
                   title={`Dodaj "${word.text}"`}
                   className={`absolute rounded-sm transition hover:bg-violet-500/25 hover:ring-2 hover:ring-violet-500/70 ${
                     selected ? "bg-violet-500/25 ring-2 ring-violet-500" : ""
