@@ -28,6 +28,7 @@ const BOOKMARKS_STORAGE_KEY = "brainlift-bookmarks";
 const MIN_PAGE_ZOOM = 0.75;
 const MAX_PAGE_ZOOM = 2.5;
 const PAGE_ZOOM_STEP = 0.25;
+const PAGE_ZOOM_SLIDER_STEP = 0.01;
 const WORD_POPUP_WIDTH = 352;
 const WORD_POPUP_ESTIMATED_HEIGHT = 300;
 const WORD_POPUP_MARGIN = 12;
@@ -224,12 +225,12 @@ function BookPreview({
   const [selectedWord, setSelectedWord] = useState(null);
   const [polish, setPolish] = useState("");
   const [isTranslatingWord, setIsTranslatingWord] = useState(false);
-  const [isLoadingWords, setIsLoadingWords] = useState(false);
+  const [, setIsLoadingWords] = useState(false);
   const [isSavingWord, setIsSavingWord] = useState(false);
   const [readerError, setReaderError] = useState("");
   const [pageZoom, setPageZoom] = useState(1);
   const [isPanningPage, setIsPanningPage] = useState(false);
-  const [isReadingFullscreen, setIsReadingFullscreen] = useState(false);
+  const [isReadingFullscreen, setIsReadingFullscreen] = useState(true);
   const pageAspectRatio =
     pageSize.width > 0 && pageSize.height > 0
       ? pageSize.height / pageSize.width
@@ -242,6 +243,7 @@ function BookPreview({
       ? pageRenderedWidth * pageAspectRatio
       : 0;
   const isCurrentPageBookmarked = bookmarkedPage === currentPage;
+  const isZoomedIn = pageZoom > 1;
 
   useEffect(() => {
     let ignore = false;
@@ -302,6 +304,36 @@ function BookPreview({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isZoomedIn) return undefined;
+
+    const animationFrame = requestAnimationFrame(centerPageHorizontally);
+    const timeout = window.setTimeout(centerPageHorizontally, 80);
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.clearTimeout(timeout);
+    };
+  }, [currentPage, isZoomedIn, pageRenderedWidth]);
+
+  useEffect(() => {
+    const viewport = pageViewportRef.current;
+
+    if (!viewport) return undefined;
+
+    const animationFrame = requestAnimationFrame(() => {
+      viewport.scrollTop = 0;
+
+      if (isZoomedIn) {
+        centerPageHorizontally();
+      }
+    });
+
+    return () => {
+      cancelAnimationFrame(animationFrame);
+    };
+  }, [currentPage, isZoomedIn]);
+
   async function saveSelectedWord(event) {
     event.preventDefault();
 
@@ -341,6 +373,18 @@ function BookPreview({
         MAX_PAGE_ZOOM
       )
     );
+  }
+
+  function centerPageHorizontally() {
+    const viewport = pageViewportRef.current;
+
+    if (!viewport) return;
+
+    const maxScrollLeft = Math.max(
+      viewport.scrollWidth - viewport.clientWidth,
+      0
+    );
+    viewport.scrollLeft = maxScrollLeft / 2;
   }
 
   function cancelSelectedWord() {
@@ -505,10 +549,10 @@ function BookPreview({
       {isReadingFullscreen && (
         <button
           type="button"
-          onClick={() => setIsReadingFullscreen(false)}
+          onClick={onBackToBooks}
           className="fixed right-4 top-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-slate-950/55 text-white shadow-xl shadow-black/30 backdrop-blur transition hover:bg-slate-900/80"
-          aria-label="Pokaż przyciski czytnika"
-          title="Pokaż przyciski"
+          aria-label="Wróć do listy książek"
+          title="Wróć do listy książek"
         >
           <Minimize2 className="h-5 w-5" />
         </button>
@@ -581,7 +625,7 @@ function BookPreview({
         onPointerCancel={stopPagePan}
         className={`reader-scroll ${
           isReadingFullscreen
-            ? "reader-scroll-visible h-dvh min-h-0 touch-auto overflow-auto border-0 bg-slate-100 pb-24"
+            ? "reader-scroll-visible h-dvh min-h-0 touch-auto overflow-auto border-0 bg-slate-100 pb-40"
             : "reader-scroll-visible h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
         } ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
@@ -638,7 +682,7 @@ function BookPreview({
       </section>
 
       {isReadingFullscreen && (
-        <section className="fixed inset-x-3 bottom-3 z-[70] mx-auto grid max-w-md grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-slate-950/55 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur">
+        <section className="fixed inset-x-3 bottom-3 z-[70] mx-auto grid max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-slate-950/55 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur">
           <button
             type="button"
             onClick={() => onChangePage(currentPage - 1)}
@@ -673,6 +717,36 @@ function BookPreview({
             <span className="truncate">Dalej</span>
             <ChevronRight className="h-4 w-4 shrink-0" />
           </button>
+
+          <button
+            type="button"
+            onClick={goToBookmark}
+            disabled={!bookmarkedPage || bookmarkedPage === currentPage}
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-45"
+            title="Przenieś na zakładkę"
+          >
+            <Bookmark className="h-4 w-4 shrink-0" />
+            <span className="truncate">Do zakładki</span>
+          </button>
+
+          <label className="col-span-2 flex min-w-0 items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold">
+            <span className="shrink-0">Zoom</span>
+            <input
+              type="range"
+              min={MIN_PAGE_ZOOM}
+              max={MAX_PAGE_ZOOM}
+              step={PAGE_ZOOM_SLIDER_STEP}
+              value={pageZoom}
+              onChange={(event) =>
+                changePageZoom(Number(event.currentTarget.value))
+              }
+              className="min-w-0 flex-1 accent-violet-500"
+              aria-label="Zoom strony"
+            />
+            <span className="w-10 shrink-0 text-right text-xs text-slate-300">
+              {Math.round(pageZoom * 100)}%
+            </span>
+          </label>
         </section>
       )}
 

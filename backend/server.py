@@ -209,6 +209,8 @@ ocr = None
 
 LAST_BITMAP = None
 LAST_FULL_BITMAP = None
+LAST_CLEAN_IMAGE = None
+LAST_FULL_CLEAN_IMAGE = None
 
 
 def get_ocr():
@@ -244,6 +246,32 @@ def run_ocr(image):
             raise
 
         return get_ocr().ocr(image)
+
+
+def normalize_ocr_text(text):
+    return re.sub(r"\s+", " ", (text or "").strip()).lower()
+
+
+def collect_ocr_items_from_images(images):
+    items = []
+    seen_texts = set()
+
+    for image in images:
+        if image is None:
+            continue
+
+        result = run_ocr(image)
+
+        for item in iter_ocr_items(result):
+            text_key = normalize_ocr_text(item.get("text"))
+
+            if not text_key or text_key in seen_texts:
+                continue
+
+            seen_texts.add(text_key)
+            items.append(item)
+
+    return items
 
 
 def as_ocr_mapping(source):
@@ -1544,16 +1572,15 @@ Format:
 def extract_words():
     try:
         global LAST_BITMAP
+        global LAST_CLEAN_IMAGE
 
         if LAST_BITMAP is None:
             return {"error": "Brak obrazu"}, 400
 
-        result = run_ocr(LAST_BITMAP)
-
-        ocr_items = []
-
-        for item in iter_ocr_items(result):
-            ocr_items.append(item)
+        ocr_items = collect_ocr_items_from_images([
+            LAST_BITMAP,
+            LAST_CLEAN_IMAGE,
+        ])
 
         words = extract_word_pairs_with_llm(ocr_items)
 
@@ -1756,6 +1783,8 @@ def main():
 def process_image():
     global LAST_BITMAP
     global LAST_FULL_BITMAP
+    global LAST_CLEAN_IMAGE
+    global LAST_FULL_CLEAN_IMAGE
 
     file = request.files.get("image")
 
@@ -1779,6 +1808,8 @@ def process_image():
 
     LAST_BITMAP = bitmap.copy()
     LAST_FULL_BITMAP = bitmap.copy()
+    LAST_CLEAN_IMAGE = clean.copy()
+    LAST_FULL_CLEAN_IMAGE = clean.copy()
 
     output_path = tempfile.NamedTemporaryFile(suffix=".png", delete=False).name
     cv2.imwrite(output_path, bitmap)
@@ -1790,6 +1821,8 @@ def process_image():
 def crop_selected_area():
     global LAST_BITMAP
     global LAST_FULL_BITMAP
+    global LAST_CLEAN_IMAGE
+    global LAST_FULL_CLEAN_IMAGE
 
     if LAST_FULL_BITMAP is None:
         return jsonify({"error": "Brak obrazu do przycięcia"}), 400
@@ -1831,8 +1864,17 @@ def crop_selected_area():
         matrix,
         (max_width, max_height)
     )
+    clean_cropped = None
+
+    if LAST_FULL_CLEAN_IMAGE is not None:
+        clean_cropped = cv2.warpPerspective(
+            LAST_FULL_CLEAN_IMAGE,
+            matrix,
+            (max_width, max_height)
+        )
 
     LAST_BITMAP = cropped.copy()
+    LAST_CLEAN_IMAGE = clean_cropped.copy() if clean_cropped is not None else None
 
     cv2.imwrite(
     os.path.join(OUTPUT_DIR, "last_cropped_bitmap.png"),
@@ -1849,16 +1891,15 @@ def crop_selected_area():
 def extract_text():
 
     global LAST_BITMAP
+    global LAST_CLEAN_IMAGE
 
     if LAST_BITMAP is None:
         return {"error":"Brak obrazu"}, 400
 
-    result = run_ocr(LAST_BITMAP)
-
-    text_blocks = []
-
-    for item in iter_ocr_items(result):
-        text_blocks.append(item)
+    text_blocks = collect_ocr_items_from_images([
+        LAST_BITMAP,
+        LAST_CLEAN_IMAGE,
+    ])
 
     return {
         "results": text_blocks
