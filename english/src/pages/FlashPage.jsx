@@ -1,6 +1,15 @@
-import { ChevronLeft, ChevronRight, Layers, Shuffle } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Layers,
+  Shuffle,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
+  deleteWordBase,
   fetchAllWords,
   fetchWordBases,
 } from "../features/words/services/wordsApi";
@@ -16,6 +25,8 @@ export default function FlashPage() {
   const [isShuffled, setIsShuffled] = useState(false);
   const [isLoadingBases, setIsLoadingBases] = useState(true);
   const [isLoadingWords, setIsLoadingWords] = useState(false);
+  const [isDeletingBase, setIsDeletingBase] = useState(false);
+  const [baseToDelete, setBaseToDelete] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -116,16 +127,59 @@ export default function FlashPage() {
     setError("");
   }
 
+  function requestDeleteBase(base) {
+    setBaseToDelete(base);
+    setError("");
+  }
+
+  function cancelDeleteBase() {
+    if (isDeletingBase) return;
+
+    setBaseToDelete(null);
+  }
+
+  async function confirmDeleteBase() {
+    if (!baseToDelete) return;
+
+    setIsDeletingBase(true);
+    setError("");
+
+    try {
+      await deleteWordBase(baseToDelete.id);
+      setBases((currentBases) =>
+        currentBases.filter((base) => base.id !== baseToDelete.id)
+      );
+      setBaseToDelete(null);
+    } catch (deleteError) {
+      console.error(deleteError);
+      setError("Nie udało się usunąć bazy fiszek.");
+    } finally {
+      setIsDeletingBase(false);
+    }
+  }
+
   return (
     <div className="space-y-10">
       <FlashPageDescription />
 
       {selectedBaseId === null && (
-        <BaseSelectionCard
-          bases={bases}
-          isLoading={isLoadingBases}
-          onSelectBase={startFlashcards}
-        />
+        <>
+          {error && <FlashMessage variant="error">{error}</FlashMessage>}
+
+          <BaseSelectionCard
+            bases={bases}
+            isLoading={isLoadingBases}
+            onDeleteBase={requestDeleteBase}
+            onSelectBase={startFlashcards}
+          />
+
+          <DeleteBaseDialog
+            base={baseToDelete}
+            isDeleting={isDeletingBase}
+            onCancel={cancelDeleteBase}
+            onConfirm={confirmDeleteBase}
+          />
+        </>
       )}
 
       {selectedBaseId !== null && (
@@ -189,7 +243,7 @@ function FlashPageDescription() {
   );
 }
 
-function BaseSelectionCard({ bases, isLoading, onSelectBase }) {
+function BaseSelectionCard({ bases, isLoading, onDeleteBase, onSelectBase }) {
   return (
     <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl">
       <div className="mb-6">
@@ -220,17 +274,33 @@ function BaseSelectionCard({ bases, isLoading, onSelectBase }) {
           </button>
 
           {bases.map((base) => (
-            <button
+            <article
               key={base.id}
-              type="button"
-              onClick={() => onSelectBase(base.id.toString())}
-              className="flex min-h-32 cursor-pointer flex-col items-start justify-between rounded-3xl border border-white/10 bg-slate-950/70 p-5 text-left transition hover:scale-[1.03] hover:border-violet-500/50 hover:bg-violet-500/10"
+              className="group relative min-h-32 rounded-3xl border border-white/10 bg-slate-950/70 transition hover:scale-[1.03] hover:border-violet-500/50 hover:bg-violet-500/10"
             >
-              <Layers className="h-7 w-7 text-slate-500" />
-              <span className="block break-words text-xl font-bold text-white">
-                {base.name}
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => onSelectBase(base.id.toString())}
+                className="flex h-full min-h-32 w-full cursor-pointer flex-col items-start justify-between rounded-3xl p-5 pr-16 text-left"
+              >
+                <Layers className="h-7 w-7 text-slate-500" />
+                <span className="block break-words text-xl font-bold text-white">
+                  {base.name}
+                </span>
+              </button>
+
+              {base.id !== 0 && (
+                <button
+                  type="button"
+                  onClick={() => onDeleteBase(base)}
+                  className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-slate-400 opacity-100 transition hover:bg-red-500/15 hover:text-red-300 md:opacity-0 md:group-hover:opacity-100"
+                  aria-label={`Usuń bazę ${base.name}`}
+                  title="Usuń bazę"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              )}
+            </article>
           ))}
 
           {bases.length === 0 && (
@@ -241,6 +311,63 @@ function BaseSelectionCard({ bases, isLoading, onSelectBase }) {
         </div>
       )}
     </section>
+  );
+}
+
+function DeleteBaseDialog({ base, isDeleting, onCancel, onConfirm }) {
+  if (!base) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur">
+      <section className="w-full max-w-md rounded-3xl border border-red-500/20 bg-slate-950 p-6 text-white shadow-2xl shadow-black/40">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
+              <AlertTriangle className="h-6 w-6" />
+            </span>
+
+            <div>
+              <h2 className="text-xl font-bold">Usunąć bazę?</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                Baza <span className="font-semibold text-white">{base.name}</span>{" "}
+                oraz wszystkie jej słowa zostaną trwale usunięte.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-slate-300 transition hover:bg-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Zamknij"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Anuluj
+          </button>
+
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Trash2 className="h-5 w-5" />
+            {isDeleting ? "Usuwanie..." : "Usuń bazę"}
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

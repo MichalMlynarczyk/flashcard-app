@@ -53,6 +53,12 @@ STARTER_WORDS = [
     ("lesson", "lekcja"),
     ("story", "historia"),
 ]
+GUEST_WORD_BASES = [
+    {
+        "id": 0,
+        "name": "Książki",
+    }
+]
 
 
 def init_db():
@@ -484,6 +490,10 @@ def get_auth_user():
 def get_request_user_id():
     user = get_auth_user()
     return user["id"] if user else None
+
+
+def auth_required_response():
+    return jsonify({"error": "Zaloguj się, żeby zapisywać zmiany."}), 401
 
 
 def create_auth_session(cursor, user_id):
@@ -1038,6 +1048,10 @@ def logout_user():
 @app.route("/api/word-bases", methods=["GET"])
 def get_word_bases():
     user_id = get_request_user_id()
+
+    if user_id is None:
+        return jsonify({"bases": GUEST_WORD_BASES})
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -1062,6 +1076,9 @@ def create_word_base():
     data = request.get_json() or {}
     name = (data.get("name") or "").strip()
     user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
 
     if not name:
         return jsonify({"error": "Podaj nazwę bazy."}), 400
@@ -1088,6 +1105,58 @@ def create_word_base():
     return jsonify({"base": base}), 201
 
 
+@app.route("/api/word-bases/<int:base_id>", methods=["DELETE"])
+def delete_word_base(base_id):
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT id
+        FROM word_bases
+        WHERE id = ?
+            AND COALESCE(user_id, 0) = COALESCE(?, 0)
+        """,
+        (base_id, user_id)
+    )
+
+    if cursor.fetchone() is None:
+        conn.close()
+        return jsonify({"error": "Nie znaleziono bazy."}), 404
+
+    cursor.execute(
+        """
+        DELETE FROM words
+        WHERE base_id = ?
+            AND COALESCE(user_id, 0) = COALESCE(?, 0)
+        """,
+        (base_id, user_id)
+    )
+    deleted_words = cursor.rowcount
+
+    cursor.execute(
+        """
+        DELETE FROM word_bases
+        WHERE id = ?
+            AND COALESCE(user_id, 0) = COALESCE(?, 0)
+        """,
+        (base_id, user_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        "deletedBaseId": base_id,
+        "deletedWords": deleted_words,
+    })
+
+
 @app.route("/api/words", methods=["GET"])
 def get_words():
     user_id = get_request_user_id()
@@ -1096,6 +1165,17 @@ def get_words():
     limit = request.args.get("limit")
     search = (request.args.get("search") or "").strip()
     base_id = request.args.get("base_id")
+
+    if user_id is None:
+        return jsonify({
+            "words": [],
+            "pagination": {
+                "page": page,
+                "perPage": per_page,
+                "total": 0,
+                "totalPages": 1
+            }
+        })
 
     where_clauses = ["COALESCE(words.user_id, 0) = COALESCE(?, 0)"]
     params = [user_id]
@@ -1170,6 +1250,9 @@ def create_word():
     base_name = data.get("baseName") or data.get("base_name")
     user_id = get_request_user_id()
 
+    if user_id is None:
+        return auth_required_response()
+
     if not english or not polish or (not base_id and not base_name):
         return jsonify({
             "error": "Podaj słowo, tłumaczenie i bazę."
@@ -1236,6 +1319,9 @@ def create_words_bulk():
     base_name = data.get("baseName") or data.get("base_name")
     user_id = get_request_user_id()
 
+    if user_id is None:
+        return auth_required_response()
+
     if not words or (not base_id and not base_name):
         return jsonify({"error": "Podaj słowa i bazę."}), 400
 
@@ -1294,6 +1380,9 @@ def delete_words():
     ids = data.get("ids") or []
     user_id = get_request_user_id()
 
+    if user_id is None:
+        return auth_required_response()
+
     try:
         ids = [int(word_id) for word_id in ids]
     except (TypeError, ValueError):
@@ -1333,6 +1422,9 @@ def update_word(word_id):
     base_id = data.get("baseId") or data.get("base_id")
     base_name = data.get("baseName") or data.get("base_name")
     user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
 
     if not english or not polish:
         return jsonify({

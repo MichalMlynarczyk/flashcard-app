@@ -129,6 +129,19 @@ export async function createWordBase(name) {
   return response.json();
 }
 
+export async function deleteWordBase(id) {
+  const response = await fetch(`${API_URL}/word-bases/${id}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Nie udało się usunąć bazy.");
+  }
+
+  return response.json();
+}
+
 export async function deleteWords(ids) {
   const response = await fetch(`${API_URL}/words`, {
     method: "DELETE",
