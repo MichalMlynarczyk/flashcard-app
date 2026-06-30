@@ -10,13 +10,25 @@ docker compose up -d --build
 Open:
 
 ```text
-http://localhost:8080
+http://localhost
 ```
 
 The backend is also exposed on:
 
 ```text
 http://localhost:5001
+```
+
+On the current server, open:
+
+```text
+http://45.93.139.211/
+```
+
+The frontend build uses:
+
+```text
+http://45.93.139.211:5001/api
 ```
 
 ## Data files

@@ -17,9 +17,9 @@ services:
     build:
       context: ./english
       args:
-        VITE_API_URL: /api
+        VITE_API_URL: http://45.93.139.211:5001/api
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - "80:80"
     restart: unless-stopped
