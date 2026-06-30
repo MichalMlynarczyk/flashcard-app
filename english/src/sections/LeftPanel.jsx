@@ -1,19 +1,22 @@
 import {
   Camera,
+  BrainCircuit,
   BookOpen,
+  ChevronRight,
   GraduationCap,
+  LogOut,
   Library,
   Menu,
+  Settings,
   Sparkles,
-  UserRound,
   X,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import logo from "../assets/logo.png";
 import {
   AUTH_SESSION_CHANGE_EVENT,
   loadStoredUser,
+  logoutUser,
 } from "../features/auth/services/authApi";
 
 const menu = [
@@ -22,7 +25,6 @@ const menu = [
   { name: "Fiszki", icon: GraduationCap, path: "/flash" },
   { name: "Słownik", icon: Library, path: "/dictionary" },
   { name: "Książki", icon: BookOpen, path: "/book" },
-  { name: "Konto", icon: UserRound, path: "/account" },
 ];
 
 export default function LeftPanel() {
@@ -48,14 +50,26 @@ export default function LeftPanel() {
     setIsMobileMenuOpen(false);
   }
 
+  async function logout() {
+    try {
+      await logoutUser();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCurrentUser(null);
+      closeMobileMenu();
+    }
+  }
+
   return (
     <>
-      <aside className="hidden min-h-screen w-80 shrink-0 border-r border-white/10 bg-slate-950 px-5 py-8 xl:block">
-        <Logo className="mb-8 justify-center" />
-        <NavigationItems pathname={location.pathname} currentUser={currentUser} />
+      <aside className="hidden min-h-screen w-64 shrink-0 border-r border-[#26354c] bg-[#111827] px-4 py-7 xl:flex xl:flex-col">
+        <Logo className="mb-9 px-2" />
+        <NavigationItems pathname={location.pathname} />
+        <SidebarFooter currentUser={currentUser} onLogout={logout} />
       </aside>
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/95 px-4 py-3 backdrop-blur xl:hidden">
+      <header className="sticky top-0 z-40 border-b border-[#40506a] bg-[#111827]/95 px-4 py-3 backdrop-blur xl:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 md:flex-col md:items-stretch xl:flex-row">
           <Logo className="shrink-0" imageClassName="h-12 w-auto" />
 
@@ -65,7 +79,6 @@ export default function LeftPanel() {
                 key={item.path}
                 item={item}
                 active={location.pathname === item.path}
-                currentUser={currentUser}
               />
             ))}
           </nav>
@@ -73,7 +86,7 @@ export default function LeftPanel() {
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-slate-200 transition hover:bg-white/20 md:hidden"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#78b7ee]/12 text-[#d7e7f8] transition hover:bg-[#78b7ee]/20 md:hidden"
             aria-label="Otwórz menu"
           >
             <Menu className="h-6 w-6" />
@@ -90,14 +103,14 @@ export default function LeftPanel() {
             onClick={closeMobileMenu}
           />
 
-          <aside className="absolute right-0 top-0 flex h-full w-[min(22rem,86vw)] flex-col border-l border-white/10 bg-slate-950 p-5 shadow-2xl">
+          <aside className="absolute right-0 top-0 flex h-full w-[min(22rem,86vw)] flex-col border-l border-[#40506a] bg-[#111827] p-5 shadow-2xl">
             <div className="mb-8 flex items-center justify-between gap-4">
               <Logo imageClassName="h-12 w-auto" onClick={closeMobileMenu} />
 
               <button
                 type="button"
                 onClick={closeMobileMenu}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-slate-200 transition hover:bg-white/20"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[#78b7ee]/12 text-[#d7e7f8] transition hover:bg-[#78b7ee]/20"
                 aria-label="Zamknij menu"
               >
                 <X className="h-6 w-6" />
@@ -107,7 +120,11 @@ export default function LeftPanel() {
             <NavigationItems
               pathname={location.pathname}
               onNavigate={closeMobileMenu}
+            />
+            <SidebarFooter
               currentUser={currentUser}
+              onLogout={logout}
+              onNavigate={closeMobileMenu}
             />
           </aside>
         </div>
@@ -116,48 +133,44 @@ export default function LeftPanel() {
   );
 }
 
-function Logo({
-  className = "",
-  imageClassName = "scale-[1] origin-center",
-  onClick,
-}) {
+function Logo({ className = "", onClick }) {
   return (
     <Link
       to="/"
       onClick={onClick}
-      className={`flex ${className}`}
+      className={`flex items-center gap-3 ${className}`}
       aria-label="Przejdź do dashboardu"
     >
-      <img src={logo} alt="FlashWords" className={imageClassName} />
+      <BrainCircuit className="h-8 w-8 text-[#9ed0ff]" />
+      <span className="text-2xl font-bold tracking-tight text-white">
+        BrainLift
+      </span>
     </Link>
   );
 }
 
-function NavigationItems({ pathname, onNavigate, currentUser }) {
+function NavigationItems({ pathname, onNavigate }) {
   return (
-    <nav className="space-y-3">
+    <nav className="space-y-4">
       {menu.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.path;
-        const label = getMenuItemLabel(item, currentUser);
 
         return (
           <Link
             key={item.path}
             to={item.path}
             onClick={onNavigate}
-            className={`flex w-full cursor-pointer items-center justify-between rounded-2xl px-5 py-4 text-left transition ${
+            className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-4 py-3 text-left transition ${
               active
-                ? "bg-violet-600/25 text-violet-400"
-                : "text-slate-500 hover:bg-white/5 hover:text-slate-300"
+                ? "border border-[#5f55d9]/35 bg-[#5b45d6]/18 text-[#9c92ff]"
+                : "text-[#a1adbf] hover:bg-[#78b7ee]/8 hover:text-[#d7e7f8]"
             }`}
           >
-            <span className="flex items-center gap-4 text-lg font-medium">
-              <Icon className="h-6 w-6" />
-              <span className="truncate">{label}</span>
+            <span className="flex items-center gap-4 text-sm font-semibold">
+              <Icon className="h-5 w-5" />
+              <span className="truncate">{item.name}</span>
             </span>
-
-            {active && <span className="h-2 w-2 rounded-full bg-violet-400" />}
           </Link>
         );
       })}
@@ -165,29 +178,63 @@ function NavigationItems({ pathname, onNavigate, currentUser }) {
   );
 }
 
-function TopNavLink({ item, active, currentUser }) {
+function SidebarFooter({ currentUser, onLogout, onNavigate }) {
+  const displayName = currentUser?.name ?? "michal";
+  const initial = displayName.slice(0, 1).toUpperCase();
+
+  return (
+    <div className="mt-auto border-t border-[#26354c] pt-5">
+      <Link
+        to="/account"
+        onClick={onNavigate}
+        className="mb-5 flex items-center justify-between rounded-xl px-3 py-2.5 text-[#d7e7f8] transition hover:bg-[#78b7ee]/8"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#293449] text-sm font-bold text-white">
+            {initial}
+          </span>
+          <span className="truncate text-sm font-semibold">{displayName}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-[#9aa8bc]" />
+      </Link>
+
+      <div className="space-y-4">
+        <Link
+          to="/account"
+          onClick={onNavigate}
+          className="flex items-center gap-4 rounded-xl px-4 py-2.5 text-sm font-semibold text-[#a1adbf] transition hover:bg-[#78b7ee]/8 hover:text-[#d7e7f8]"
+        >
+          <Settings className="h-5 w-5" />
+          Ustawienia
+        </Link>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex w-full items-center gap-4 rounded-xl px-4 py-2.5 text-left text-sm font-semibold text-[#a1adbf] transition hover:bg-[#78b7ee]/8 hover:text-[#d7e7f8]"
+        >
+          <LogOut className="h-5 w-5" />
+          Wyloguj
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TopNavLink({ item, active }) {
   const Icon = item.icon;
-  const label = getMenuItemLabel(item, currentUser);
 
   return (
     <Link
       to={item.path}
       className={`flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
         active
-          ? "border-violet-500/30 bg-violet-600/25 text-violet-300"
-          : "border-white/10 bg-slate-900/80 text-slate-400 hover:bg-white/10 hover:text-slate-200"
+          ? "border-[#78b7ee]/45 bg-[#78b7ee]/18 text-[#9ed0ff]"
+          : "border-[#40506a] bg-[#1c2636]/90 text-[#9aa8bc] hover:bg-[#78b7ee]/12 hover:text-[#d7e7f8]"
       }`}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      <span className="truncate">{label}</span>
+      <span className="truncate">{item.name}</span>
     </Link>
   );
-}
-
-function getMenuItemLabel(item, currentUser) {
-  if (item.path === "/account" && currentUser?.name) {
-    return currentUser.name;
-  }
-
-  return item.name;
 }

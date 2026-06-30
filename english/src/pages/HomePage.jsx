@@ -1,8 +1,18 @@
-import { Library, Camera, BookOpen, Database } from "lucide-react";
-import { Plus } from "lucide-react";
+import {
+  BookOpen,
+  Camera,
+  CheckCircle2,
+  Database,
+  GraduationCap,
+  Library,
+  Plus,
+  ScanText,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { loadStoredUser } from "../features/auth/services/authApi";
 import {
+  AuthRequiredError,
   createWord,
   fetchWordBases,
   fetchWords,
@@ -17,6 +27,7 @@ export default function HomePage() {
   const [totalBookWords, setTotalBookWords] = useState(0);
   const [isLoadingWords, setIsLoadingWords] = useState(true);
   const [wordsError, setWordsError] = useState("");
+  const currentUser = loadStoredUser();
 
   async function loadLatestWords() {
     setIsLoadingWords(true);
@@ -75,8 +86,8 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-10">
-      <StartSection />
+    <div className="space-y-5">
+      <DashboardHeader userName={currentUser?.name} />
 
       <StatisticSection
         totalBases={totalBases}
@@ -84,7 +95,12 @@ export default function HomePage() {
         totalWords={totalWords}
       />
 
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.25fr_0.95fr]">
+        <LearningSummary latestWords={latestWords} totalWords={totalWords} />
+        <TodaySummary totalWords={totalWords} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <AddNewWord onWordAdded={loadLatestWords} />
         <LastAdd
           error={wordsError}
@@ -97,39 +113,38 @@ export default function HomePage() {
 }
 
 
-function StartSection(){
-    return(
-    <section className="w-full rounded-[28px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/40 p-8 md:p-12 shadow-2xl">
-      <div className="max-w-3xl">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
-          Witaj w BrainLift
+function DashboardHeader({ userName }) {
+  return (
+    <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+          Witaj{userName ? `, ${userName}` : ""}!
         </h1>
 
-        <p className="mt-5 max-w-2xl text-lg md:text-xl leading-relaxed text-slate-400">
-          Ucz się angielskiego mądrze — skanuj teksty, buduj słownik i ćwicz
-          z fiszkami wspieranymi przez AI.
+        <p className="mt-2 text-sm text-[#9aa8bc] md:text-base">
+          Ucz się mądrzej z fiszkami wspieranymi przez AI.
         </p>
+      </div>
 
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link
-            to="/scan"
-            className="flex items-center gap-3 rounded-2xl bg-violet-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:bg-violet-500"
-          >
-            📷
-            Skanuj zdjęcie
-          </Link>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/scan"
+          className="inline-flex items-center gap-2 rounded-xl bg-[#5b45d6] px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#050b14]/30 transition hover:bg-[#6a56e8]"
+        >
+          <ScanText className="h-4 w-4" />
+          Skanuj tekst
+        </Link>
 
-          <Link
-            to="/flash"
-            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-6 py-3 font-semibold text-white transition hover:bg-white/10"
-          >
-            🎓
-            Ćwicz fiszki
-          </Link>
-        </div>
+        <Link
+          to="/flash"
+          className="inline-flex items-center gap-2 rounded-xl border border-[#40506a] bg-[#111827]/50 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#78b7ee]/12"
+        >
+          <GraduationCap className="h-4 w-4" />
+          Ćwicz fiszki
+        </Link>
       </div>
     </section>
-    )
+  );
 }
 
 function StatisticSection({ totalBases, totalBookWords, totalWords }) {
@@ -138,57 +153,152 @@ function StatisticSection({ totalBases, totalBookWords, totalWords }) {
       icon: Library,
       value: totalWords,
       label: "Wszystkie słowa",
-      color: "text-indigo-400",
-      bg: "bg-indigo-500/15",
+      color: "text-[#9ed0ff]",
+      bg: "bg-[#78b7ee]/15",
     },
     {
       icon: Camera,
       value: totalWords,
       label: "Ze skanów",
-      color: "text-cyan-400",
-      bg: "bg-cyan-500/15",
+      color: "text-[#9ed0ff]",
+      bg: "bg-[#78b7ee]/15",
     },
     {
       icon: Database,
       value: totalBases,
       label: "Bazy danych",
-      color: "text-orange-400",
-      bg: "bg-orange-500/15",
+      color: "text-[#f0c77b]",
+      bg: "bg-[#3d2f1f]/60",
     },
     {
       icon: BookOpen,
       value: totalBookWords,
       label: "Z książek",
-      color: "text-pink-400",
-      bg: "bg-pink-500/15",
+      color: "text-[#d7a4d6]",
+      bg: "bg-[#351f34]/80",
     },
   ];
 
   return (
-    <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {stats.map((item) => {
         const Icon = item.icon;
 
         return (
           <div
             key={item.label}
-            className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl"
+            className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl"
           >
             <div
-              className={`mb-6 flex h-12 w-12 items-center justify-center rounded-2xl ${item.bg}`}
+              className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl ${item.bg}`}
             >
               <Icon className={`h-6 w-6 ${item.color}`} />
             </div>
 
             <h3 className="text-3xl font-bold text-white">{item.value}</h3>
 
-            <p className="mt-2 text-sm font-medium text-slate-400">
+            <p className="mt-2 text-sm font-medium text-[#9aa8bc]">
               {item.label}
             </p>
           </div>
         );
       })}
     </section>
+  );
+}
+
+function LearningSummary({ latestWords, totalWords }) {
+  const visibleWords = latestWords.slice(0, 5);
+  const progress = totalWords > 0 ? Math.min((visibleWords.length / 5) * 100, 100) : 0;
+
+  return (
+    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-xl font-bold text-white">Aktualnie uczysz się</h2>
+        <Link
+          to="/flash"
+          className="text-sm font-semibold text-[#86bff0] transition hover:text-[#9ed0ff]"
+        >
+          Zobacz wszystkie
+        </Link>
+      </div>
+
+      <div className="rounded-2xl border border-[#40506a] bg-[#111827]/55 p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#9ed0ff]">
+          Tryb nauka
+        </p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+          <div>
+            <h3 className="text-lg font-bold text-white">Nowe fiszki 1-5</h3>
+            <p className="mt-1 text-sm text-[#9aa8bc]">
+              Etap 1 · Pierwsza tura · PL → ENG
+            </p>
+          </div>
+          <StudyMetric label="Znam" value={`${visibleWords.length}/5`} />
+          <StudyMetric label="Zakres" value="1-5" />
+        </div>
+
+        <div className="mt-5 flex items-center gap-3">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#20324a]/80">
+            <div
+              className="h-full rounded-full bg-[#7868ff]"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="w-10 text-right text-xs font-bold text-[#9ed0ff]">
+            {Math.round(progress)}%
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StudyMetric({ label, value }) {
+  return (
+    <div className="min-w-20 rounded-xl bg-[#111827]/70 px-3 py-2">
+      <p className="text-xs font-semibold uppercase text-[#74849a]">{label}</p>
+      <p className="mt-1 text-lg font-bold text-white">{value}</p>
+    </div>
+  );
+}
+
+function TodaySummary({ totalWords }) {
+  return (
+    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+      <h2 className="text-xl font-bold text-white">Dzisiaj</h2>
+
+      <div className="mt-5 grid gap-4 sm:grid-cols-[8rem_1fr] sm:items-center">
+        <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-[#24324a]">
+          <div className="absolute inset-[-10px] rounded-full border-[10px] border-[#7868ff] border-b-transparent border-l-transparent" />
+          <div className="relative text-center">
+            <p className="text-3xl font-bold text-white">
+              {Math.min(totalWords, 20)}
+            </p>
+            <p className="text-xs text-[#9aa8bc]">z 20 fiszek</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <TodayRow icon={CheckCircle2} label="Nowe fiszki" value="8" />
+          <TodayRow icon={GraduationCap} label="Powtórki" value="12" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TodayRow({ icon: Icon, label, value }) {
+  return (
+    <div className="flex items-center gap-4">
+      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#5b45d6]/25 text-[#9ed0ff]">
+        <Icon className="h-5 w-5" />
+      </span>
+      <span>
+        <span className="block text-lg font-bold text-white">{value}</span>
+        <span className="text-sm text-[#9aa8bc]">{label}</span>
+      </span>
+    </div>
   );
 }
 
@@ -293,27 +403,31 @@ function AddNewWord({ onWordAdded }) {
       setSelectedBaseId(basesData.bases[0]?.id?.toString() ?? "");
     } catch (saveError) {
       console.error(saveError);
-      setError("Nie udało się dodać słowa.");
+      setError(
+        saveError instanceof AuthRequiredError
+          ? saveError.message
+          : "Nie udało się dodać słowa."
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <section className="min-h-[560px] rounded-3xl border border-white/10 bg-slate-900/80 p-7 shadow-xl">
-      <h2 className="mb-6 text-xl font-bold text-white">Dodaj nowe słowo</h2>
+    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+      <h2 className="mb-4 text-xl font-bold text-white">Dodaj nowe słowo</h2>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-3" onSubmit={handleSubmit}>
         <div className="flex gap-3">
           <input
             type="text"
             value={english}
             onChange={(event) => setEnglish(event.target.value)}
             placeholder="Słowo po angielsku..."
-            className="w-full rounded-xl border border-white/10 bg-slate-800/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
+            className="w-full rounded-xl border border-[#40506a] bg-[#223047]/85 px-4 py-2.5 text-white outline-none placeholder:text-[#74849a] focus:border-[#78b7ee]"
           />
 
-          <button className="whitespace-nowrap rounded-xl border border-white/10 bg-slate-950/40 px-5 py-3 text-slate-400 transition hover:bg-white/10 hover:text-white">
+          <button className="whitespace-nowrap rounded-xl border border-[#40506a] bg-[#111827]/40 px-4 py-2.5 text-[#9aa8bc] transition hover:bg-[#78b7ee]/12 hover:text-white">
             AI Tłumacz
           </button>
         </div>
@@ -323,7 +437,7 @@ function AddNewWord({ onWordAdded }) {
           value={polish}
           onChange={(event) => setPolish(event.target.value)}
           placeholder="Tłumaczenie po polsku..."
-          className="w-full rounded-xl border border-white/10 bg-slate-800/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
+          className="w-full rounded-xl border border-[#40506a] bg-[#223047]/85 px-4 py-2.5 text-white outline-none placeholder:text-[#74849a] focus:border-[#78b7ee]"
         />
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -333,7 +447,7 @@ function AddNewWord({ onWordAdded }) {
               setSelectedBaseId(event.target.value);
               setNewBaseName("");
             }}
-            className="w-full rounded-xl border border-white/10 bg-slate-800/70 px-4 py-3 text-white outline-none focus:border-violet-500"
+            className="w-full rounded-xl border border-[#40506a] bg-[#223047]/85 px-4 py-2.5 text-white outline-none focus:border-[#78b7ee]"
           >
             <option value="">Wybierz bazę</option>
             {bases.map((base) => (
@@ -351,14 +465,14 @@ function AddNewWord({ onWordAdded }) {
               setSelectedBaseId("");
             }}
             placeholder="Nowa baza, np. dom"
-            className="w-full rounded-xl border border-white/10 bg-slate-800/70 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
+            className="w-full rounded-xl border border-[#40506a] bg-[#223047]/85 px-4 py-2.5 text-white outline-none placeholder:text-[#74849a] focus:border-[#78b7ee]"
           />
         </div>
 
         {error && <p className="text-sm font-medium text-red-300">{error}</p>}
 
         {successMessage && (
-          <p className="text-sm font-medium text-emerald-300">
+          <p className="text-sm font-medium text-[#9ed0ff]">
             {successMessage}
           </p>
         )}
@@ -366,7 +480,7 @@ function AddNewWord({ onWordAdded }) {
         <button
           type="submit"
           disabled={isSaving}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-violet-600/80 px-5 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-xl bg-[#5b45d6] px-5 py-2.5 font-semibold text-white transition hover:bg-[#6a56e8] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="h-5 w-5" />
           {isSaving ? "Dodawanie..." : "Dodaj do słownika"}
@@ -379,13 +493,13 @@ function AddNewWord({ onWordAdded }) {
 
 function LastAdd({ error, isLoading, words }) {
   return (
-    <section>
-      <div className="mb-5 flex items-center justify-between">
+    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+      <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-bold text-white">Ostatnio dodane</h2>
 
         <Link
           to="/dictionary"
-          className="text-sm font-medium text-violet-400 transition hover:text-violet-300"
+          className="text-sm font-medium text-[#86bff0] transition hover:text-[#9ed0ff]"
         >
           Zobacz wszystkie →
         </Link>
@@ -393,7 +507,7 @@ function LastAdd({ error, isLoading, words }) {
 
       <div className="space-y-3">
         {isLoading && (
-          <p className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 text-slate-400">
+          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc]">
             Ładowanie słów...
           </p>
         )}
@@ -405,7 +519,7 @@ function LastAdd({ error, isLoading, words }) {
         )}
 
         {!isLoading && !error && words.length === 0 && (
-          <p className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 text-slate-400">
+          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc]">
             Brak słów w bazie.
           </p>
         )}
@@ -413,24 +527,24 @@ function LastAdd({ error, isLoading, words }) {
         {words.map((item) => (
           <div
             key={item.id}
-            className="rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-lg"
+            className="rounded-xl border border-[#40506a] bg-[#351f34]/82 px-4 py-3 shadow-lg"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <h3 className="truncate text-lg font-bold text-white">
+                  <h3 className="truncate text-base font-bold text-white">
                     {item.english}
                   </h3>
 
-                  <Camera className="h-4 w-4 text-slate-500" />
+                  <Camera className="h-4 w-4 text-[#74849a]" />
                 </div>
 
-                <p className="mt-2 text-base text-slate-400">
+                <p className="mt-1 text-sm text-[#9aa8bc]">
                   {item.polish}
                 </p>
               </div>
 
-              <span className="shrink-0 rounded-full bg-slate-700/60 px-3 py-1 text-xs font-bold text-slate-400">
+              <span className="shrink-0 rounded-full bg-[#33445f]/70 px-3 py-1 text-xs font-bold text-[#9aa8bc]">
                 {item.baseName}
               </span>
             </div>

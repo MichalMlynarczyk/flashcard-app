@@ -2,7 +2,7 @@
 
 :root {
   min-height: 100%;
-  background-color: #020617;
+  background-color: #111827;
   color-scheme: dark;
 }
 
@@ -11,7 +11,7 @@ body,
 #root {
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: #020617;
+  background-color: #111827;
 }
 
 html {
@@ -22,7 +22,7 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background-color: #020617;
+  background-color: #111827;
   overflow-x: hidden;
   overscroll-behavior-y: none;
 }
@@ -44,7 +44,7 @@ body {
 
 .reader-scroll-visible {
   scrollbar-width: thin;
-  scrollbar-color: rgba(15, 23, 42, 0.65) rgba(226, 232, 240, 0.8);
+  scrollbar-color: rgba(120, 183, 238, 0.65) rgba(17, 24, 39, 0.65);
 }
 
 .reader-scroll-visible::-webkit-scrollbar {
@@ -54,10 +54,10 @@ body {
 }
 
 .reader-scroll-visible::-webkit-scrollbar-track {
-  background: rgba(226, 232, 240, 0.8);
+  background: rgba(17, 24, 39, 0.65);
 }
 
 .reader-scroll-visible::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.65);
+  background: rgba(120, 183, 238, 0.65);
 }

@@ -1,6 +1,43 @@
-import { getAuthHeaders } from "../../auth/services/authApi";
+import {
+  clearAuthSession,
+  getAuthHeaders,
+  getAuthToken,
+} from "../../auth/services/authApi";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+
+export class AuthRequiredError extends Error {
+  constructor(message = "Zaloguj się, żeby zapisywać zmiany.") {
+    super(message);
+    this.name = "AuthRequiredError";
+  }
+}
+
+function requireAuthHeaders() {
+  if (!getAuthToken()) {
+    throw new AuthRequiredError();
+  }
+
+  return getAuthHeaders();
+}
+
+async function throwApiError(response, fallbackMessage) {
+  let message = fallbackMessage;
+
+  try {
+    const data = await response.json();
+    message = data.error || message;
+  } catch {
+    // Some endpoints may return an empty or non-JSON error body.
+  }
+
+  if (response.status === 401) {
+    clearAuthSession();
+    throw new AuthRequiredError(message);
+  }
+
+  throw new Error(message);
+}
 
 export async function fetchWords({
   baseId,
@@ -54,13 +91,13 @@ export async function createWord({ baseId, baseName, english, polish }) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
+      ...requireAuthHeaders(),
     },
     body: JSON.stringify({ baseId, baseName, english, polish }),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się dodać słowa.");
+    await throwApiError(response, "Nie udało się dodać słowa.");
   }
 
   return response.json();
@@ -88,13 +125,13 @@ export async function createWordsBulk({ baseId, baseName, words }) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
+      ...requireAuthHeaders(),
     },
     body: JSON.stringify({ baseId, baseName, words }),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się zapisać słów.");
+    await throwApiError(response, "Nie udało się zapisać słów.");
   }
 
   return response.json();
@@ -117,13 +154,13 @@ export async function createWordBase(name) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
+      ...requireAuthHeaders(),
     },
     body: JSON.stringify({ name }),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się utworzyć bazy.");
+    await throwApiError(response, "Nie udało się utworzyć bazy.");
   }
 
   return response.json();
@@ -132,11 +169,11 @@ export async function createWordBase(name) {
 export async function deleteWordBase(id) {
   const response = await fetch(`${API_URL}/word-bases/${id}`, {
     method: "DELETE",
-    headers: getAuthHeaders(),
+    headers: requireAuthHeaders(),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się usunąć bazy.");
+    await throwApiError(response, "Nie udało się usunąć bazy.");
   }
 
   return response.json();
@@ -147,13 +184,13 @@ export async function deleteWords(ids) {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
+      ...requireAuthHeaders(),
     },
     body: JSON.stringify({ ids }),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się usunąć słów.");
+    await throwApiError(response, "Nie udało się usunąć słów.");
   }
 
   return response.json();
@@ -164,13 +201,13 @@ export async function updateWord(id, { baseId, baseName, english, polish }) {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...getAuthHeaders(),
+      ...requireAuthHeaders(),
     },
     body: JSON.stringify({ baseId, baseName, english, polish }),
   });
 
   if (!response.ok) {
-    throw new Error("Nie udało się zaktualizować słowa.");
+    await throwApiError(response, "Nie udało się zaktualizować słowa.");
   }
 
   return response.json();

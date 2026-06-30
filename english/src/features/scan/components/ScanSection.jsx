@@ -54,8 +54,8 @@ export default function ScanSection() {
       onDrop={handleDrop}
       className={`rounded-[32px] border-2 border-dashed px-8 py-16 transition ${
         isDragging
-          ? "border-violet-500 bg-violet-500/10"
-          : "border-white/10 bg-slate-950/70"
+          ? "border-[#78b7ee] bg-[#78b7ee]/12"
+          : "border-[#40506a] bg-[#111827]/70"
       }`}
     >
       <input

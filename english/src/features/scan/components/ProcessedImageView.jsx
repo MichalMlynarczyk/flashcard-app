@@ -75,7 +75,7 @@ export default function ProcessedImageView({
             {isReviewingExtractedWords ? "Wyodrębnione słowa" : "Wynik skanowania"}
           </h2>
 
-          <p className="mt-2 text-slate-400">
+          <p className="mt-2 text-[#9aa8bc]">
             {isReviewingExtractedWords
               ? "Sprawdź listę i wybierz bazę, do której mają trafić słowa."
               : `Zaznacz 4 punkty przycięcia: ${points.length}/4`}
@@ -85,7 +85,7 @@ export default function ProcessedImageView({
         <button
           type="button"
           onClick={onRemoveImage}
-          className="rounded-2xl bg-white/10 p-3 text-slate-300 transition hover:bg-white/20 hover:text-white"
+          className="rounded-2xl bg-[#78b7ee]/12 p-3 text-[#c5d3e4] transition hover:bg-[#78b7ee]/20 hover:text-white"
         >
           <X className="h-6 w-6" />
         </button>
@@ -116,13 +116,13 @@ export default function ProcessedImageView({
             type="button"
             onClick={() => changeZoom(-1)}
             disabled={zoom <= MIN_ZOOM}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Minus className="h-5 w-5" />
             Zoom out
           </button>
 
-          <span className="min-w-16 text-center text-sm font-semibold text-slate-300">
+          <span className="min-w-16 text-center text-sm font-semibold text-[#c5d3e4]">
             {Math.round(zoom * 100)}%
           </span>
 
@@ -130,7 +130,7 @@ export default function ProcessedImageView({
             type="button"
             onClick={() => changeZoom(1)}
             disabled={zoom >= MAX_ZOOM}
-            className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Plus className="h-5 w-5" />
             Zoom in
@@ -140,7 +140,7 @@ export default function ProcessedImageView({
       )}
 
       {!isReviewingExtractedWords && (
-      <div className="max-h-[720px] overflow-auto rounded-3xl border border-white/10 bg-black/30">
+      <div className="max-h-[720px] overflow-auto rounded-3xl border border-[#40506a] bg-black/30">
         <div
           className="relative"
           style={{
@@ -225,7 +225,7 @@ export default function ProcessedImageView({
                 }}
                 onPointerUp={stopDragging}
                 onClick={(event) => event.stopPropagation()}
-                className="absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full bg-violet-600 text-sm font-bold text-white shadow-lg shadow-violet-950/40 ring-2 ring-white/80 transition hover:bg-violet-500"
+                className="absolute flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full bg-[#78b7ee] text-sm font-bold text-white shadow-lg shadow-[#050b14]/40 ring-2 ring-white/80 transition hover:bg-[#8cc5f4]"
                 style={{
                   left: `${(point.x / imageSize.width) * 100}%`,
                   top: `${(point.y / imageSize.height) * 100}%`,
@@ -244,7 +244,7 @@ export default function ProcessedImageView({
           type="button"
           onClick={onClearPoints}
           disabled={points.length === 0}
-          className="rounded-2xl bg-white/10 px-6 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-2xl bg-[#78b7ee]/12 px-6 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Wyczyść punkty
         </button>
@@ -253,7 +253,7 @@ export default function ProcessedImageView({
           type="button"
           onClick={onCropImage}
           disabled={points.length !== 4}
-          className="rounded-2xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-2xl bg-[#78b7ee] px-6 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Przytnij zaznaczenie
         </button>
@@ -263,7 +263,7 @@ export default function ProcessedImageView({
             type="button"
             onClick={onExtractWords}
             disabled={isExtractingWords}
-            className="rounded-2xl bg-emerald-600 px-6 py-3 font-semibold text-white transition hover:bg-emerald-500"
+            className="rounded-2xl bg-[#78b7ee] px-6 py-3 font-semibold text-white transition hover:bg-[#8cc5f4]"
           >
             {isExtractingWords ? "Wyodrębnianie..." : "Wyodrębnij słowa"}
           </button>
@@ -272,22 +272,22 @@ export default function ProcessedImageView({
       )}
 
       {extractedWords.length > 0 && (
-        <section className="space-y-5 rounded-3xl border border-white/10 bg-slate-900/80 p-6">
+        <section className="space-y-5 rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6">
           <div className="grid gap-3 md:grid-cols-2">
             {extractedWords.map((word, index) => (
               <div
                 key={`${word.english}-${word.polish}-${index}`}
-                className="rounded-2xl border border-white/10 bg-slate-950/70 p-4"
+                className="rounded-2xl border border-[#40506a] bg-[#111827]/70 p-4"
               >
                 <p className="text-lg font-bold text-white">{word.english}</p>
-                <p className="mt-1 text-slate-400">{word.polish}</p>
+                <p className="mt-1 text-[#9aa8bc]">{word.polish}</p>
               </div>
             ))}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-300">
+              <span className="text-sm font-semibold text-[#c5d3e4]">
                 Dostępna baza
               </span>
 
@@ -297,7 +297,7 @@ export default function ProcessedImageView({
                   onSelectedBaseChange(event.target.value);
                   onNewBaseNameChange("");
                 }}
-                className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none"
+                className="w-full rounded-2xl border border-[#40506a] bg-[#111827] px-4 py-3 text-white outline-none"
               >
                 <option value="">Wybierz bazę</option>
                 {wordBases.map((base) => (
@@ -309,7 +309,7 @@ export default function ProcessedImageView({
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-semibold text-slate-300">
+              <span className="text-sm font-semibold text-[#c5d3e4]">
                 Albo utwórz nową
               </span>
 
@@ -321,7 +321,7 @@ export default function ProcessedImageView({
                   onSelectedBaseChange("");
                 }}
                 placeholder="np. części ciała, dom"
-                className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+                className="w-full rounded-2xl border border-[#40506a] bg-[#111827] px-4 py-3 text-white outline-none placeholder:text-[#74849a]"
               />
             </label>
           </div>
@@ -333,7 +333,7 @@ export default function ProcessedImageView({
               disabled={
                 isSavingExtractedWords || (!selectedBaseId && !newBaseName.trim())
               }
-              className="rounded-2xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-2xl bg-[#78b7ee] px-6 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSavingExtractedWords ? "Zapisywanie..." : "Zapisz do bazy"}
             </button>

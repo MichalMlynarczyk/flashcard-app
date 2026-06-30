@@ -11,12 +11,12 @@ export default function ScanPage() {
 
 function ScanPageDescription() {
   return (
-    <section className="rounded-[28px] border border-white/10 bg-slate-950/70 p-10 shadow-xl">
+    <section className="rounded-[28px] border border-[#40506a] bg-[#111827]/70 p-10 shadow-xl">
       <h1 className="text-5xl font-bold tracking-tight text-white">
         Skanuj tekst
       </h1>
 
-      <p className="mt-4 max-w-4xl text-xl leading-relaxed text-slate-400">
+      <p className="mt-4 max-w-4xl text-xl leading-relaxed text-[#9aa8bc]">
         Zrób zdjęcie książki lub zeszytu — AI wyciągnie słówka i doda je do
         Twojego słownika
       </p>

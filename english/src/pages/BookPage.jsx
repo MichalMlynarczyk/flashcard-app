@@ -20,6 +20,7 @@ import {
   getBookPagePreviewUrl,
 } from "../features/books/services/booksApi";
 import {
+  AuthRequiredError,
   createWord,
   translateWord,
 } from "../features/words/services/wordsApi";
@@ -128,13 +129,13 @@ export default function BookPage() {
           Książki
         </h1>
 
-        <p className="mt-4 text-xl text-slate-400">
+        <p className="mt-4 text-xl text-[#9aa8bc]">
           Wybierz książkę, a potem podejrzyj pojedynczą stronę PDF.
         </p>
       </section>
 
       {isLoading && (
-        <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-slate-400">
+        <section className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 text-[#9aa8bc]">
           Ładowanie książek...
         </section>
       )}
@@ -150,11 +151,11 @@ export default function BookPage() {
           {books.map((book) => (
             <article
               key={book.filename}
-              className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 transition hover:border-violet-500/50 hover:bg-violet-500/10"
+              className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 transition hover:border-[#78b7ee]/65 hover:bg-[#78b7ee]/12"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-500/15">
-                  <BookOpen className="h-6 w-6 text-violet-300" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#78b7ee]/15">
+                  <BookOpen className="h-6 w-6 text-[#9ed0ff]" />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -162,16 +163,16 @@ export default function BookPage() {
                     {book.title}
                   </h2>
 
-                  <p className="mt-2 break-words text-sm text-slate-500">
+                  <p className="mt-2 break-words text-sm text-[#74849a]">
                     {book.filename}
                   </p>
 
-                  <p className="mt-2 text-sm font-medium text-slate-400">
+                  <p className="mt-2 text-sm font-medium text-[#9aa8bc]">
                     {book.pageCount || "?"} stron
                   </p>
 
                   {bookmarks[book.filename] && (
-                    <p className="mt-2 text-sm font-medium text-violet-300">
+                    <p className="mt-2 text-sm font-medium text-[#9ed0ff]">
                       Zakładka: strona {bookmarks[book.filename]}
                     </p>
                   )}
@@ -181,7 +182,7 @@ export default function BookPage() {
               <button
                 type="button"
                 onClick={() => openBook(book)}
-                className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-500"
+                className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee] px-5 py-3 font-semibold text-white transition hover:bg-[#8cc5f4]"
               >
                 <Eye className="h-5 w-5" />
                 Podgląd
@@ -359,7 +360,11 @@ function BookPreview({
 
     } catch (saveError) {
       console.error(saveError);
-      setReaderError("Nie udało się dodać słowa do fiszek.");
+      setReaderError(
+        saveError instanceof AuthRequiredError
+          ? saveError.message
+          : "Nie udało się dodać słowa do fiszek."
+      );
     } finally {
       setIsSavingWord(false);
     }
@@ -542,7 +547,7 @@ function BookPreview({
     <div
       className={
         isReadingFullscreen
-          ? "fixed inset-0 z-[60] w-screen bg-slate-950"
+          ? "fixed inset-0 z-[60] w-screen bg-[#111827]"
           : "relative left-1/2 w-screen max-w-none -translate-x-1/2 space-y-4 px-0 sm:px-4 xl:left-0 xl:w-full xl:translate-x-0"
       }
     >
@@ -550,7 +555,7 @@ function BookPreview({
         <button
           type="button"
           onClick={onBackToBooks}
-          className="fixed right-4 top-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-slate-950/55 text-white shadow-xl shadow-black/30 backdrop-blur transition hover:bg-slate-900/80"
+          className="fixed right-4 top-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full border border-[#587091] bg-[#111827]/55 text-white shadow-xl shadow-black/30 backdrop-blur transition hover:bg-[#1c2636]/90"
           aria-label="Wróć do listy książek"
           title="Wróć do listy książek"
         >
@@ -566,19 +571,19 @@ function BookPreview({
 
       {!isReadingFullscreen && (
       <section className="flex flex-wrap items-center justify-center gap-3">
-        <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-slate-900/80 p-2">
+        <div className="inline-flex items-center gap-2 rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-2">
           <button
             type="button"
             onClick={() => changePageZoom(pageZoom - PAGE_ZOOM_STEP)}
             disabled={pageZoom <= MIN_PAGE_ZOOM}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78b7ee]/12 text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Pomniejsz stronę"
             title="Pomniejsz stronę"
           >
             <ZoomOut className="h-5 w-5" />
           </button>
 
-          <span className="min-w-16 text-center text-sm font-semibold text-slate-300">
+          <span className="min-w-16 text-center text-sm font-semibold text-[#c5d3e4]">
             {Math.round(pageZoom * 100)}%
           </span>
 
@@ -586,7 +591,7 @@ function BookPreview({
             type="button"
             onClick={() => changePageZoom(pageZoom + PAGE_ZOOM_STEP)}
             disabled={pageZoom >= MAX_PAGE_ZOOM}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78b7ee]/12 text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Powiększ stronę"
             title="Powiększ stronę"
           >
@@ -597,7 +602,7 @@ function BookPreview({
             type="button"
             onClick={() => changePageZoom(1)}
             disabled={pageZoom === 1}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78b7ee]/12 text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Resetuj powiększenie"
             title="Resetuj powiększenie"
           >
@@ -608,7 +613,7 @@ function BookPreview({
         <button
           type="button"
           onClick={() => setIsReadingFullscreen(true)}
-          className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-600 text-white shadow-lg shadow-violet-950/40 transition hover:bg-violet-500"
+          className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-[#9ed0ff]/45 bg-[#78b7ee] text-white shadow-lg shadow-[#050b14]/40 transition hover:bg-[#8cc5f4]"
           aria-label="Pełny ekran czytania"
           title="Pełny ekran czytania"
         >
@@ -626,7 +631,7 @@ function BookPreview({
         className={`reader-scroll ${
           isReadingFullscreen
             ? "reader-scroll-visible h-dvh min-h-0 touch-auto overflow-auto border-0 bg-slate-100 pb-40"
-            : "reader-scroll-visible h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-white/10 bg-slate-900/80 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
+            : "reader-scroll-visible h-[calc(100dvh-11.5rem)] min-h-[30rem] touch-none overflow-auto border-y border-[#40506a] bg-[#1c2636]/90 sm:h-[calc(100dvh-13rem)] sm:rounded-3xl sm:border xl:h-[calc(100dvh-12rem)]"
         } ${
           isPanningPage ? "cursor-grabbing" : "cursor-grab"
         }`}
@@ -664,8 +669,8 @@ function BookPreview({
                   data-word-hit="true"
                   onClick={(event) => selectWord(word, event)}
                   title={`Dodaj "${word.text}"`}
-                  className={`absolute rounded-sm transition hover:bg-violet-500/25 hover:ring-2 hover:ring-violet-500/70 ${
-                    selected ? "bg-violet-500/25 ring-2 ring-violet-500" : ""
+                  className={`absolute rounded-sm transition hover:bg-[#78b7ee]/25 hover:ring-2 hover:ring-[#78b7ee]/70 ${
+                    selected ? "bg-[#78b7ee]/25 ring-2 ring-[#78b7ee]" : ""
                   }`}
                   style={{
                     left: `${(word.x / pageSize.width) * 100}%`,
@@ -682,12 +687,12 @@ function BookPreview({
       </section>
 
       {isReadingFullscreen && (
-        <section className="fixed inset-x-3 bottom-3 z-[70] mx-auto grid max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-white/15 bg-slate-950/55 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur">
+        <section className="fixed inset-x-3 bottom-3 z-[70] mx-auto grid max-w-2xl grid-cols-3 gap-2 rounded-2xl border border-[#587091] bg-[#111827]/55 p-2 text-white shadow-2xl shadow-black/30 backdrop-blur">
           <button
             type="button"
             onClick={() => onChangePage(currentPage - 1)}
             disabled={currentPage <= 1}
-            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-[#78b7ee]/12 px-2 py-2.5 text-sm font-semibold transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-45"
           >
             <ChevronLeft className="h-4 w-4 shrink-0" />
             <span className="truncate">Powrót</span>
@@ -696,7 +701,7 @@ function BookPreview({
           <button
             type="button"
             onClick={onAddBookmark}
-            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20"
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-[#78b7ee]/12 px-2 py-2.5 text-sm font-semibold transition hover:bg-[#78b7ee]/20"
           >
             <Bookmark
               className={`h-4 w-4 shrink-0 ${
@@ -712,7 +717,7 @@ function BookPreview({
             type="button"
             onClick={() => onChangePage(currentPage + 1)}
             disabled={currentPage >= pageCount}
-            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-violet-600/90 px-2 py-2.5 text-sm font-semibold transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-[#78b7ee]/90 px-2 py-2.5 text-sm font-semibold transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <span className="truncate">Dalej</span>
             <ChevronRight className="h-4 w-4 shrink-0" />
@@ -722,14 +727,14 @@ function BookPreview({
             type="button"
             onClick={goToBookmark}
             disabled={!bookmarkedPage || bookmarkedPage === currentPage}
-            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-white/10 px-2 py-2.5 text-sm font-semibold transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-45"
+            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-xl bg-[#78b7ee]/12 px-2 py-2.5 text-sm font-semibold transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-45"
             title="Przenieś na zakładkę"
           >
             <Bookmark className="h-4 w-4 shrink-0" />
             <span className="truncate">Do zakładki</span>
           </button>
 
-          <label className="col-span-2 flex min-w-0 items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5 text-sm font-semibold">
+          <label className="col-span-2 flex min-w-0 items-center gap-3 rounded-xl bg-[#78b7ee]/12 px-3 py-2.5 text-sm font-semibold">
             <span className="shrink-0">Zoom</span>
             <input
               type="range"
@@ -740,10 +745,10 @@ function BookPreview({
               onChange={(event) =>
                 changePageZoom(Number(event.currentTarget.value))
               }
-              className="min-w-0 flex-1 accent-violet-500"
+              className="min-w-0 flex-1 accent-[#78b7ee]"
               aria-label="Zoom strony"
             />
-            <span className="w-10 shrink-0 text-right text-xs text-slate-300">
+            <span className="w-10 shrink-0 text-right text-xs text-[#c5d3e4]">
               {Math.round(pageZoom * 100)}%
             </span>
           </label>
@@ -755,7 +760,7 @@ function BookPreview({
         createPortal(
           <form
             onSubmit={saveSelectedWord}
-            className="fixed z-[9999] rounded-2xl border border-violet-500/40 bg-slate-950/95 p-4 text-left shadow-2xl shadow-black/40 backdrop-blur"
+            className="fixed z-[9999] rounded-2xl border border-[#78b7ee]/50 bg-[#111827]/95 p-4 text-left shadow-2xl shadow-black/40 backdrop-blur"
             style={{
               left: `${selectedWord.popupLeft}px`,
               top: `${selectedWord.popupTop}px`,
@@ -764,7 +769,7 @@ function BookPreview({
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase text-slate-500">
+                <p className="text-xs font-semibold uppercase text-[#74849a]">
                   Angielskie słowo
                 </p>
                 <p className="mt-1 break-words text-lg font-bold text-white">
@@ -775,7 +780,7 @@ function BookPreview({
               <button
                 type="button"
                 onClick={cancelSelectedWord}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-slate-300 transition hover:bg-white/20 hover:text-white"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#78b7ee]/12 text-[#c5d3e4] transition hover:bg-[#78b7ee]/20 hover:text-white"
                 aria-label="Anuluj"
               >
                 <X className="h-4 w-4" />
@@ -783,7 +788,7 @@ function BookPreview({
             </div>
 
             <label className="mt-4 block space-y-2">
-              <span className="text-sm font-semibold text-slate-300">
+              <span className="text-sm font-semibold text-[#c5d3e4]">
                 Tłumaczenie
               </span>
               <input
@@ -793,12 +798,12 @@ function BookPreview({
                 placeholder={
                   isTranslatingWord ? "Tłumaczę..." : "Wpisz po polsku..."
                 }
-                className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2.5 text-white outline-none placeholder:text-slate-500 focus:border-violet-500"
+                className="w-full rounded-xl border border-[#40506a] bg-[#1c2636] px-3 py-2.5 text-white outline-none placeholder:text-[#74849a] focus:border-[#78b7ee]"
                 autoFocus
               />
             </label>
 
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-[#74849a]">
               Zapis do bazy: {book.title}
             </p>
 
@@ -806,7 +811,7 @@ function BookPreview({
               <button
                 type="button"
                 onClick={cancelSelectedWord}
-                className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+                className="rounded-xl bg-[#78b7ee]/12 px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#78b7ee]/20"
               >
                 Anuluj
               </button>
@@ -814,7 +819,7 @@ function BookPreview({
               <button
                 type="submit"
                 disabled={isSavingWord || isTranslatingWord}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#78b7ee] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus className="h-4 w-4" />
                 {isSavingWord ? "Dodawanie..." : "Dodaj"}
@@ -830,7 +835,7 @@ function BookPreview({
           type="button"
           onClick={() => onChangePage(currentPage - 1)}
           disabled={currentPage <= 1}
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronLeft className="h-5 w-5" />
           Powrót
@@ -839,7 +844,7 @@ function BookPreview({
         <button
           type="button"
           onClick={onAddBookmark}
-          className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20"
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20"
         >
           <Bookmark
             className={`h-5 w-5 ${
@@ -855,7 +860,7 @@ function BookPreview({
           type="button"
           onClick={goToBookmark}
           disabled={!bookmarkedPage || bookmarkedPage === currentPage}
-          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Bookmark className="h-5 w-5" />
           <span className="truncate">Przenieś do zakładki</span>
@@ -865,7 +870,7 @@ function BookPreview({
           type="button"
           onClick={() => onChangePage(currentPage + 1)}
           disabled={currentPage >= pageCount}
-          className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee] px-5 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Dalej
           <ChevronRight className="h-5 w-5" />

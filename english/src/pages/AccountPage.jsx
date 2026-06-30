@@ -126,8 +126,8 @@ export default function AccountPage() {
   return (
     <div className="space-y-8">
       <section className="grid gap-6 lg:grid-cols-[1fr_24rem]">
-        <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl md:p-8">
-          <p className="text-sm font-semibold uppercase text-violet-300">
+        <div className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 shadow-xl md:p-8">
+          <p className="text-sm font-semibold uppercase text-[#9ed0ff]">
             Konto i dostęp
           </p>
 
@@ -135,7 +135,7 @@ export default function AccountPage() {
             {currentUser ? `Cześć, ${currentUser.name}` : heading}
           </h1>
 
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#9aa8bc]">
             {currentUser
               ? "Masz aktywny profil. Backend zapisuje użytkownika, sesję oraz Twoje osobne bazy słów."
               : subheading}
@@ -166,7 +166,7 @@ export default function AccountPage() {
           )}
 
           {message && (
-            <p className="mt-5 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-300">
+            <p className="mt-5 rounded-2xl border border-[#40506a] bg-[#111827]/70 px-4 py-3 text-sm text-[#c5d3e4]">
               {message}
             </p>
           )}
@@ -180,14 +180,14 @@ export default function AccountPage() {
 
 function ModeSwitch({ mode, onModeChange }) {
   return (
-    <div className="mt-8 grid rounded-2xl border border-white/10 bg-slate-950/70 p-1 sm:inline-grid sm:grid-cols-2">
+    <div className="mt-8 grid rounded-2xl border border-[#40506a] bg-[#111827]/70 p-1 sm:inline-grid sm:grid-cols-2">
       <button
         type="button"
         onClick={() => onModeChange("login")}
         className={`flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition ${
           mode === "login"
-            ? "bg-violet-600 text-white"
-            : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            ? "bg-[#78b7ee] text-white"
+            : "text-[#9aa8bc] hover:bg-[#78b7ee]/8 hover:text-[#d7e7f8]"
         }`}
       >
         <LogIn className="h-4 w-4" />
@@ -199,8 +199,8 @@ function ModeSwitch({ mode, onModeChange }) {
         onClick={() => onModeChange("register")}
         className={`flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition ${
           mode === "register"
-            ? "bg-violet-600 text-white"
-            : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            ? "bg-[#78b7ee] text-white"
+            : "text-[#9aa8bc] hover:bg-[#78b7ee]/8 hover:text-[#d7e7f8]"
         }`}
       >
         <UserPlus className="h-4 w-4" />
@@ -233,7 +233,7 @@ function LoginForm({ form, isSubmitting, onChange, onSubmit }) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#78b7ee] px-6 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <LogIn className="h-5 w-5" />
         {isSubmitting ? "Logowanie..." : "Zaloguj"}
@@ -272,7 +272,7 @@ function RegisterForm({ form, isSubmitting, onChange, onSubmit }) {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#78b7ee] px-6 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-60"
       >
         <UserPlus className="h-5 w-5" />
         {isSubmitting ? "Tworzenie..." : "Utwórz konto"}
@@ -291,15 +291,15 @@ function FormField({
 }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-semibold text-slate-300">{label}</span>
-      <span className="flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-200 focus-within:border-violet-500/60">
-        <Icon className="h-5 w-5 shrink-0 text-slate-500" />
+      <span className="text-sm font-semibold text-[#c5d3e4]">{label}</span>
+      <span className="flex items-center gap-3 rounded-2xl border border-[#40506a] bg-[#111827]/70 px-4 py-3 text-[#d7e7f8] focus-within:border-[#78b7ee]/60">
+        <Icon className="h-5 w-5 shrink-0 text-[#74849a]" />
         <input
           name={name}
           onChange={onChange}
           type={type}
           value={value}
-          className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-slate-600"
+          className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#607086]"
           placeholder={label}
         />
       </span>
@@ -310,12 +310,12 @@ function FormField({
 function AccountSummary({ user, onLogout }) {
   return (
     <div className="mt-8 grid max-w-xl gap-4">
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+      <div className="rounded-2xl border border-[#78b7ee]/35 bg-[#78b7ee]/12 p-5">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-emerald-300" />
+          <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-[#9ed0ff]" />
           <div>
             <h2 className="text-lg font-bold text-white">Pełny dostęp</h2>
-            <p className="mt-1 text-sm leading-6 text-emerald-100/80">
+            <p className="mt-1 text-sm leading-6 text-[#d7e7f8]/85">
               Konto jest aktywne w backendzie. Twoje bazy i słowa są
               przypisane do tego użytkownika.
             </p>
@@ -323,8 +323,8 @@ function AccountSummary({ user, onLogout }) {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
-        <p className="text-sm text-slate-500">Email</p>
+      <div className="rounded-2xl border border-[#40506a] bg-[#111827]/70 p-5">
+        <p className="text-sm text-[#74849a]">Email</p>
         <p className="mt-1 break-words text-lg font-semibold text-white">
           {user.email}
         </p>
@@ -333,7 +333,7 @@ function AccountSummary({ user, onLogout }) {
       <button
         type="button"
         onClick={onLogout}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-slate-950/70 px-6 py-3 font-semibold text-slate-200 transition hover:bg-white/10"
+        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[#40506a] bg-[#111827]/70 px-6 py-3 font-semibold text-[#d7e7f8] transition hover:bg-[#78b7ee]/12"
       >
         <LogOut className="h-5 w-5" />
         Wyloguj
@@ -344,8 +344,8 @@ function AccountSummary({ user, onLogout }) {
 
 function GuestLimitsCard({ isLoggedIn }) {
   return (
-    <aside className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-xl">
-      <p className="text-sm font-semibold uppercase text-cyan-300">
+    <aside className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 shadow-xl">
+      <p className="text-sm font-semibold uppercase text-[#9ed0ff]">
         {isLoggedIn ? "Status konta" : "Tryb gościa"}
       </p>
 
@@ -353,7 +353,7 @@ function GuestLimitsCard({ isLoggedIn }) {
         {isLoggedIn ? "Bez limitu na start" : "Limit przed logowaniem"}
       </h2>
 
-      <p className="mt-3 text-sm leading-6 text-slate-400">
+      <p className="mt-3 text-sm leading-6 text-[#9aa8bc]">
         Użytkownik bez konta może wejść do aplikacji i sprawdzić wszystkie
         funkcje, ale frontend pokazuje limit próbny.
       </p>
@@ -365,21 +365,21 @@ function GuestLimitsCard({ isLoggedIn }) {
           return (
             <div
               key={item.label}
-              className="rounded-2xl border border-white/10 bg-slate-950/70 p-4"
+              className="rounded-2xl border border-[#40506a] bg-[#111827]/70 p-4"
             >
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/15">
-                  <Icon className="h-5 w-5 text-cyan-300" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#78b7ee]/15">
+                  <Icon className="h-5 w-5 text-[#9ed0ff]" />
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500">{item.label}</p>
+                  <p className="text-sm text-[#74849a]">{item.label}</p>
                   <p className="text-xl font-bold text-white">
                     {isLoggedIn ? "Bez limitu" : item.value}
                   </p>
                 </div>
               </div>
 
-              <p className="mt-3 text-sm leading-5 text-slate-500">
+              <p className="mt-3 text-sm leading-5 text-[#74849a]">
                 {isLoggedIn ? "Dostęp odblokowany po zalogowaniu." : item.note}
               </p>
             </div>

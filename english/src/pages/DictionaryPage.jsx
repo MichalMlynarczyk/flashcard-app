@@ -320,20 +320,20 @@ function SelectionToolbar({
   onTogglePageSelection,
 }) {
   return (
-    <section className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:flex-row sm:items-center sm:justify-between">
-      <label className="flex items-center gap-3 text-sm font-semibold text-slate-300">
+    <section className="flex flex-col gap-4 rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <label className="flex items-center gap-3 text-sm font-semibold text-[#c5d3e4]">
         <input
           type="checkbox"
           checked={allSelected}
           disabled={wordsCount === 0}
           onChange={onTogglePageSelection}
-          className="h-5 w-5 rounded border-white/10 bg-slate-950 accent-violet-600"
+          className="h-5 w-5 rounded border-[#40506a] bg-[#111827] accent-[#78b7ee]"
         />
         Zaznacz wszystkie na stronie
       </label>
 
       <div className="flex flex-wrap items-center gap-4">
-        <span className="text-sm font-medium text-slate-400">
+        <span className="text-sm font-medium text-[#9aa8bc]">
           Zaznaczono: {selectedCount}
         </span>
 
@@ -343,7 +343,7 @@ function SelectionToolbar({
               type="button"
               onClick={onEditSelected}
               disabled={selectedCount !== 1 || isDeleting}
-              className="inline-flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Pencil className="h-5 w-5" />
               Edytuj
@@ -370,7 +370,7 @@ function DictionaryPageDescription({ totalWords }) {
     <section>
       <h1 className="text-5xl font-bold text-white">Słownik</h1>
 
-      <p className="mt-3 text-xl text-slate-400">
+      <p className="mt-3 text-xl text-[#9aa8bc]">
         Wszystkie Twoje słowa w jednym miejscu — {totalWords} słów
       </p>
     </section>
@@ -388,47 +388,47 @@ function FilterBar({
 }) {
   return (
     <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
-      <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4">
-        <Search className="h-5 w-5 shrink-0 text-slate-500" />
+      <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#40506a] bg-[#1c2636] px-5 py-4">
+        <Search className="h-5 w-5 shrink-0 text-[#74849a]" />
 
         <input
           type="text"
           value={search}
           onChange={onSearchChange}
           placeholder="Szukaj słowa lub tłumaczenia..."
-          className="w-full bg-transparent outline-none placeholder:text-slate-500"
+          className="w-full bg-transparent outline-none placeholder:text-[#74849a]"
         />
       </div>
 
-      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
+      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-[#40506a] bg-[#1c2636] px-5 py-4 text-[#c5d3e4]">
         Baza
         <select
           value={selectedBaseId}
           onChange={onBaseChange}
           className="min-w-0 max-w-44 bg-transparent font-semibold text-white outline-none"
         >
-          <option className="bg-slate-900" value="">
+          <option className="bg-[#1c2636]" value="">
             Wszystkie
           </option>
           {bases.map((base) => (
-            <option className="bg-slate-900" key={base.id} value={base.id}>
+            <option className="bg-[#1c2636]" key={base.id} value={base.id}>
               {base.name}
             </option>
           ))}
         </select>
       </label>
 
-      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-slate-300">
+      <label className="flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-[#40506a] bg-[#1c2636] px-5 py-4 text-[#c5d3e4]">
         Na stronę
         <select
           value={perPage}
           onChange={onPerPageChange}
           className="bg-transparent font-semibold text-white outline-none"
         >
-          <option className="bg-slate-900" value={20}>
+          <option className="bg-[#1c2636]" value={20}>
             20
           </option>
-          <option className="bg-slate-900" value={30}>
+          <option className="bg-[#1c2636]" value={30}>
             30
           </option>
         </select>
@@ -454,7 +454,7 @@ function Dictionary({
 }) {
   if (isLoading) {
     return (
-      <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-slate-400">
+      <section className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 text-[#9aa8bc]">
         Ładowanie słów...
       </section>
     );
@@ -470,7 +470,7 @@ function Dictionary({
 
   if (words.length === 0) {
     return (
-      <section className="rounded-3xl border border-white/10 bg-slate-900/80 p-6 text-slate-400">
+      <section className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 text-[#9aa8bc]">
         Brak słów do wyświetlenia.
       </section>
     );
@@ -488,8 +488,8 @@ function Dictionary({
           onClick={() => onToggleWordSelection(item.id)}
           className={`relative w-full min-w-0 cursor-pointer rounded-3xl border p-5 text-left transition duration-200 sm:p-6 sm:hover:scale-[1.02] ${
             selected
-              ? "border-violet-500/50 bg-violet-500/10 ring-2 ring-violet-500/20"
-              : "border-white/10 bg-slate-900/80"
+              ? "border-[#78b7ee]/55 bg-[#351f34]/95 ring-2 ring-[#78b7ee]/20"
+              : "border-[#40506a] bg-[#351f34]/82"
           }`}
         >
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -499,47 +499,47 @@ function Dictionary({
                   {item.english}
                 </h3>
 
-                <Camera className="h-4 w-4 shrink-0 text-slate-500" />
+                <Camera className="h-4 w-4 shrink-0 text-[#74849a]" />
               </div>
 
-              <p className="mt-2 min-w-0 text-3xl text-slate-400 [overflow-wrap:anywhere]">
+              <p className="mt-2 min-w-0 text-3xl text-[#9aa8bc] [overflow-wrap:anywhere]">
                 {item.polish}
               </p>
             </div>
 
-            <span className="w-fit max-w-full shrink-0 rounded-full bg-violet-500/20 px-4 py-2 text-sm font-bold text-violet-300 [overflow-wrap:anywhere]">
+            <span className="w-fit max-w-full shrink-0 rounded-full bg-[#78b7ee]/20 px-4 py-2 text-sm font-bold text-[#9ed0ff] [overflow-wrap:anywhere]">
               {item.baseName}
             </span>
           </div>
 
           {isEditingThisWord && (
             <form
-              className="mt-6 grid gap-4 border-t border-white/10 pt-6"
+              className="mt-6 grid gap-4 border-t border-[#40506a] pt-6"
               onClick={(event) => event.stopPropagation()}
               onSubmit={onSaveEditedWord}
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-2">
-                  <span className="text-sm font-semibold text-slate-300">
+                  <span className="text-sm font-semibold text-[#c5d3e4]">
                     Słowo po angielsku
                   </span>
                   <input
                     type="text"
                     value={editEnglish}
                     onChange={(event) => onEditEnglishChange(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-violet-500"
+                    className="w-full rounded-2xl border border-[#40506a] bg-[#111827] px-4 py-3 text-white outline-none focus:border-[#78b7ee]"
                   />
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-sm font-semibold text-slate-300">
+                  <span className="text-sm font-semibold text-[#c5d3e4]">
                     Tłumaczenie po polsku
                   </span>
                   <input
                     type="text"
                     value={editPolish}
                     onChange={(event) => onEditPolishChange(event.target.value)}
-                    className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none focus:border-violet-500"
+                    className="w-full rounded-2xl border border-[#40506a] bg-[#111827] px-4 py-3 text-white outline-none focus:border-[#78b7ee]"
                   />
                 </label>
               </div>
@@ -548,7 +548,7 @@ function Dictionary({
                 <button
                   type="button"
                   onClick={onCancelEditing}
-                  className="rounded-2xl bg-white/10 px-5 py-3 font-semibold text-white transition hover:bg-white/20"
+                  className="rounded-2xl bg-[#78b7ee]/12 px-5 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20"
                 >
                   Anuluj
                 </button>
@@ -556,7 +556,7 @@ function Dictionary({
                 <button
                   type="submit"
                   disabled={isEditing}
-                  className="rounded-2xl bg-violet-600 px-5 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-2xl bg-[#78b7ee] px-5 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isEditing ? "Zapisywanie..." : "Zapisz zmiany"}
                 </button>
@@ -577,13 +577,13 @@ function Pagination({ page, perPage, total, totalPages, onPageChange }) {
   const end = Math.min(page * perPage, total);
 
   return (
-    <section className="grid gap-4 rounded-3xl border border-white/10 bg-slate-900/80 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
-      <p className="text-sm font-medium text-slate-400">
+    <section className="grid gap-4 rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-5 sm:grid-cols-[1fr_auto] sm:items-center">
+      <p className="text-sm font-medium text-[#9aa8bc]">
         Pokazano {start}-{end} z {total}
       </p>
 
       <div className="grid min-w-0 grid-cols-2 gap-3 sm:flex sm:items-center">
-        <span className="col-span-2 text-center text-sm font-semibold text-slate-300 sm:order-2 sm:min-w-20">
+        <span className="col-span-2 text-center text-sm font-semibold text-[#c5d3e4] sm:order-2 sm:min-w-20">
           {page}/{totalPages}
         </span>
 
@@ -591,7 +591,7 @@ function Pagination({ page, perPage, total, totalPages, onPageChange }) {
           type="button"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-white/10 px-3 py-3 font-semibold text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50 sm:order-1 sm:px-4"
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-[#78b7ee]/12 px-3 py-3 font-semibold text-white transition hover:bg-[#78b7ee]/20 disabled:cursor-not-allowed disabled:opacity-50 sm:order-1 sm:px-4"
         >
           <ChevronLeft className="h-5 w-5" />
           <span className="truncate">Poprzednia</span>
@@ -601,7 +601,7 @@ function Pagination({ page, perPage, total, totalPages, onPageChange }) {
           type="button"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-3 py-3 font-semibold text-white transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50 sm:order-3 sm:px-4"
+          className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-[#78b7ee] px-3 py-3 font-semibold text-white transition hover:bg-[#8cc5f4] disabled:cursor-not-allowed disabled:opacity-50 sm:order-3 sm:px-4"
         >
           <span className="truncate">Następna</span>
           <ChevronRight className="h-5 w-5" />
