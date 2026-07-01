@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronRight,
   GraduationCap,
+  BarChart3,
   LogOut,
   Library,
   Menu,
@@ -25,6 +26,12 @@ const menu = [
   { name: "Fiszki", icon: GraduationCap, path: "/flash" },
   { name: "Słownik", icon: Library, path: "/dictionary" },
   { name: "Książki", icon: BookOpen, path: "/book" },
+];
+
+const userMenu = [
+  ...menu.slice(0, 3),
+  { name: "Statystyki", icon: BarChart3, path: "/stats" },
+  ...menu.slice(3),
 ];
 
 export default function LeftPanel() {
@@ -61,11 +68,13 @@ export default function LeftPanel() {
     }
   }
 
+  const navigationItems = currentUser ? userMenu : menu;
+
   return (
     <>
-      <aside className="hidden min-h-screen w-64 shrink-0 border-r border-[#26354c] bg-[#111827] px-4 py-7 xl:flex xl:flex-col">
+      <aside className="hidden h-dvh w-64 shrink-0 overflow-y-auto border-r border-[#26354c] bg-[#111827] px-4 py-7 xl:flex xl:flex-col">
         <Logo className="mb-9 px-2" />
-        <NavigationItems pathname={location.pathname} />
+        <NavigationItems items={navigationItems} pathname={location.pathname} />
         <SidebarFooter currentUser={currentUser} onLogout={logout} />
       </aside>
 
@@ -74,7 +83,7 @@ export default function LeftPanel() {
           <Logo className="shrink-0" imageClassName="h-12 w-auto" />
 
           <nav className="hidden w-full grid-cols-3 gap-3 md:grid">
-            {menu.map((item) => (
+            {navigationItems.map((item) => (
               <TopNavLink
                 key={item.path}
                 item={item}
@@ -118,6 +127,7 @@ export default function LeftPanel() {
             </div>
 
             <NavigationItems
+              items={navigationItems}
               pathname={location.pathname}
               onNavigate={closeMobileMenu}
             />
@@ -149,10 +159,10 @@ function Logo({ className = "", onClick }) {
   );
 }
 
-function NavigationItems({ pathname, onNavigate }) {
+function NavigationItems({ items, pathname, onNavigate }) {
   return (
     <nav className="space-y-4">
-      {menu.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const active = pathname === item.path;
 

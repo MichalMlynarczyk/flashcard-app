@@ -95,19 +95,18 @@ export default function HomePage() {
         totalWords={totalWords}
       />
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.25fr_0.95fr]">
-        <LearningSummary latestWords={latestWords} totalWords={totalWords} />
-        <TodaySummary totalWords={totalWords} />
-      </div>
+      <LearningSummary latestWords={latestWords} totalWords={totalWords} />
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[0.95fr_1.05fr]">
         <AddNewWord onWordAdded={loadLatestWords} />
-        <LastAdd
-          error={wordsError}
-          isLoading={isLoadingWords}
-          words={latestWords}
-        />
+        <TodaySummary totalWords={totalWords} />
       </div>
+
+      <LastAdd
+        error={wordsError}
+        isLoading={isLoadingWords}
+        words={latestWords}
+      />
     </div>
   );
 }
@@ -265,10 +264,10 @@ function StudyMetric({ label, value }) {
 
 function TodaySummary({ totalWords }) {
   return (
-    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+    <section className="flex h-full flex-col rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
       <h2 className="text-xl font-bold text-white">Dzisiaj</h2>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-[8rem_1fr] sm:items-center">
+      <div className="mt-5 grid flex-1 gap-4 sm:grid-cols-[8rem_1fr] sm:items-center">
         <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full border-[10px] border-[#24324a]">
           <div className="absolute inset-[-10px] rounded-full border-[10px] border-[#7868ff] border-b-transparent border-l-transparent" />
           <div className="relative text-center">
@@ -414,7 +413,7 @@ function AddNewWord({ onWordAdded }) {
   }
 
   return (
-    <section className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
+    <section className="h-full rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 shadow-xl">
       <h2 className="mb-4 text-xl font-bold text-white">Dodaj nowe słowo</h2>
 
       <form className="space-y-3" onSubmit={handleSubmit}>
@@ -505,21 +504,21 @@ function LastAdd({ error, isLoading, words }) {
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-3 lg:grid-cols-2">
         {isLoading && (
-          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc]">
+          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc] lg:col-span-2">
             Ładowanie słów...
           </p>
         )}
 
         {error && (
-          <p className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-red-300">
+          <p className="rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-red-300 lg:col-span-2">
             {error}
           </p>
         )}
 
         {!isLoading && !error && words.length === 0 && (
-          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc]">
+          <p className="rounded-2xl border border-[#40506a] bg-[#1c2636]/90 p-5 text-[#9aa8bc] lg:col-span-2">
             Brak słów w bazie.
           </p>
         )}

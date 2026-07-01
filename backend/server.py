@@ -170,6 +170,58 @@ def init_db():
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS study_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            base_id INTEGER,
+            words_count INTEGER NOT NULL,
+            stages_count INTEGER NOT NULL,
+            completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (base_id) REFERENCES word_bases(id)
+                ON DELETE SET NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_study_sessions_owner_completed
+        ON study_sessions (user_id, completed_at)
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS learned_words (
+            user_id INTEGER NOT NULL,
+            word_id INTEGER NOT NULL,
+            first_learned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, word_id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (word_id) REFERENCES words(id)
+                ON DELETE CASCADE
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS study_cycle_achievements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            base_id INTEGER,
+            cycle_number INTEGER NOT NULL,
+            words_count INTEGER NOT NULL,
+            new_words_count INTEGER NOT NULL,
+            review_words_count INTEGER NOT NULL,
+            completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+                ON DELETE CASCADE,
+            FOREIGN KEY (base_id) REFERENCES word_bases(id)
+                ON DELETE SET NULL
+        )
+    """)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_study_cycle_achievements_owner_completed
+        ON study_cycle_achievements (user_id, completed_at)
+    """)
+
+    cursor.execute("""
         INSERT OR IGNORE INTO word_bases (name, user_id)
         VALUES (?, NULL)
     """, ("Książki",))
@@ -900,6 +952,30 @@ def serialize_base(row):
     }
 
 
+def serialize_study_session(row):
+    return {
+        "id": row["id"],
+        "baseId": row["base_id"],
+        "baseName": row["base_name"] or "Wszystkie",
+        "wordsCount": row["words_count"],
+        "stagesCount": row["stages_count"],
+        "completedAt": row["completed_at"],
+    }
+
+
+def serialize_study_cycle(row):
+    return {
+        "id": row["id"],
+        "baseId": row["base_id"],
+        "baseName": row["base_name"] or "Wszystkie",
+        "cycleNumber": row["cycle_number"],
+        "wordsCount": row["words_count"],
+        "newWordsCount": row["new_words_count"],
+        "reviewWordsCount": row["review_words_count"],
+        "completedAt": row["completed_at"],
+    }
+
+
 def get_or_create_base(cursor, name, user_id=None):
     base_name = (name or "").strip()
 
@@ -1499,6 +1575,465 @@ def update_word(word_id):
     conn.close()
 
     return jsonify({"word": word})
+
+
+@app.route("/api/study-sessions", methods=["POST"])
+def create_study_session():
+    data = request.get_json() or {}
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    base_id = data.get("baseId") or data.get("base_id")
+    words_count = parse_positive_int(data.get("wordsCount") or data.get("words_count"), 1)
+    stages_count = parse_positive_int(data.get("stagesCount") or data.get("stages_count"), 1)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if base_id:
+        cursor.execute(
+            """
+            SELECT id
+            FROM word_bases
+            WHERE id = ?
+                AND COALESCE(user_id, 0) = COALESCE(?, 0)
+            """,
+            (base_id, user_id)
+        )
+
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({"error": "Nie znaleziono bazy."}), 404
+
+        base_id = int(base_id)
+    else:
+        base_id = None
+
+    cursor.execute(
+        """
+        INSERT INTO study_sessions
+        (user_id, base_id, words_count, stages_count)
+        VALUES (?, ?, ?, ?)
+        """,
+        (user_id, base_id, words_count, stages_count)
+    )
+    session_id = cursor.lastrowid
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT
+            study_sessions.id,
+            study_sessions.base_id,
+            COALESCE(word_bases.name, 'Wszystkie') AS base_name,
+            study_sessions.words_count,
+            study_sessions.stages_count,
+            study_sessions.completed_at
+        FROM study_sessions
+        LEFT JOIN word_bases ON word_bases.id = study_sessions.base_id
+        WHERE study_sessions.id = ?
+            AND study_sessions.user_id = ?
+        """,
+        (session_id, user_id)
+    )
+
+    session = serialize_study_session(cursor.fetchone())
+    conn.close()
+
+    return jsonify({"session": session}), 201
+
+
+@app.route("/api/study-sessions/stats", methods=["GET"])
+def get_study_session_stats():
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            study_cycle_achievements.id,
+            study_cycle_achievements.base_id,
+            COALESCE(word_bases.name, 'Wszystkie') AS base_name,
+            study_cycle_achievements.cycle_number,
+            study_cycle_achievements.words_count,
+            study_cycle_achievements.new_words_count,
+            study_cycle_achievements.review_words_count,
+            study_cycle_achievements.completed_at
+        FROM study_cycle_achievements
+        LEFT JOIN word_bases ON word_bases.id = study_cycle_achievements.base_id
+        WHERE study_cycle_achievements.user_id = ?
+        ORDER BY study_cycle_achievements.completed_at DESC
+        LIMIT 12
+        """,
+        (user_id,)
+    )
+    recent_cycles = [serialize_study_cycle(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM (
+            SELECT
+                DATE(completed_at) AS day,
+                COUNT(*) AS cycles,
+                SUM(new_words_count) AS new_words,
+                SUM(review_words_count) AS reviews
+            FROM study_cycle_achievements
+            WHERE user_id = ?
+            GROUP BY DATE(completed_at)
+            ORDER BY day DESC
+            LIMIT 180
+        )
+        ORDER BY day ASC
+        """,
+        (user_id,)
+    )
+    daily_progress = [
+        {
+            "day": row["day"],
+            "cycles": row["cycles"],
+            "newWords": row["new_words"] or 0,
+            "reviews": row["reviews"] or 0,
+        }
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(
+        """
+        SELECT
+            COUNT(*) AS total_cycles,
+            COALESCE(SUM(new_words_count), 0) AS total_new_words,
+            COALESCE(SUM(review_words_count), 0) AS total_reviews,
+            MAX(completed_at) AS last_completed_at
+        FROM study_cycle_achievements
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+    totals_row = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "summary": {
+            "totalCycles": totals_row["total_cycles"],
+            "totalNewWords": totals_row["total_new_words"],
+            "totalReviews": totals_row["total_reviews"],
+            "lastCompletedAt": totals_row["last_completed_at"],
+        },
+        "dailyProgress": daily_progress,
+        "recentCycles": recent_cycles,
+    })
+
+
+@app.route("/api/study-cycles", methods=["POST"])
+def create_study_cycle():
+    data = request.get_json() or {}
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    base_id = data.get("baseId") or data.get("base_id")
+    cycle_number = parse_positive_int(data.get("cycleNumber") or data.get("cycle_number"), 1)
+    word_ids = data.get("wordIds") or data.get("word_ids") or []
+
+    try:
+        word_ids = [int(word_id) for word_id in word_ids]
+    except (TypeError, ValueError):
+        return jsonify({"error": "Nieprawidłowe ID słów."}), 400
+
+    word_ids = list(dict.fromkeys(word_ids))
+
+    if not word_ids:
+        return jsonify({"error": "Brak słów cyklu."}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if base_id:
+        cursor.execute(
+            """
+            SELECT id
+            FROM word_bases
+            WHERE id = ?
+                AND COALESCE(user_id, 0) = COALESCE(?, 0)
+            """,
+            (base_id, user_id)
+        )
+
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({"error": "Nie znaleziono bazy."}), 404
+
+        base_id = int(base_id)
+    else:
+        base_id = None
+
+    placeholders = ",".join("?" for _ in word_ids)
+    cursor.execute(
+        f"""
+        SELECT id
+        FROM words
+        WHERE id IN ({placeholders})
+            AND COALESCE(user_id, 0) = COALESCE(?, 0)
+        """,
+        [*word_ids, user_id]
+    )
+    owned_word_ids = {row["id"] for row in cursor.fetchall()}
+
+    if len(owned_word_ids) != len(word_ids):
+        conn.close()
+        return jsonify({"error": "Nie znaleziono części słów cyklu."}), 404
+
+    cursor.execute(
+        f"""
+        SELECT word_id
+        FROM learned_words
+        WHERE user_id = ?
+            AND word_id IN ({placeholders})
+        """,
+        [user_id, *word_ids]
+    )
+    already_learned_word_ids = {row["word_id"] for row in cursor.fetchall()}
+    new_word_ids = [word_id for word_id in word_ids if word_id not in already_learned_word_ids]
+    review_words_count = len(word_ids) - len(new_word_ids)
+
+    for word_id in new_word_ids:
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO learned_words (user_id, word_id)
+            VALUES (?, ?)
+            """,
+            (user_id, word_id)
+        )
+
+    cursor.execute(
+        """
+        INSERT INTO study_cycle_achievements
+        (user_id, base_id, cycle_number, words_count, new_words_count, review_words_count)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            base_id,
+            cycle_number,
+            len(word_ids),
+            len(new_word_ids),
+            review_words_count,
+        )
+    )
+    cycle_id = cursor.lastrowid
+    conn.commit()
+
+    cursor.execute(
+        """
+        SELECT
+            study_cycle_achievements.id,
+            study_cycle_achievements.base_id,
+            COALESCE(word_bases.name, 'Wszystkie') AS base_name,
+            study_cycle_achievements.cycle_number,
+            study_cycle_achievements.words_count,
+            study_cycle_achievements.new_words_count,
+            study_cycle_achievements.review_words_count,
+            study_cycle_achievements.completed_at
+        FROM study_cycle_achievements
+        LEFT JOIN word_bases ON word_bases.id = study_cycle_achievements.base_id
+        WHERE study_cycle_achievements.id = ?
+            AND study_cycle_achievements.user_id = ?
+        """,
+        (cycle_id, user_id)
+    )
+
+    cycle = serialize_study_cycle(cursor.fetchone())
+    conn.close()
+
+    return jsonify({"cycle": cycle}), 201
+
+
+@app.route("/api/study-cycles/status", methods=["GET"])
+def get_study_cycle_status():
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    base_id = request.args.get("base_id")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    if base_id:
+        cursor.execute(
+            """
+            SELECT id
+            FROM word_bases
+            WHERE id = ?
+                AND COALESCE(user_id, 0) = COALESCE(?, 0)
+            """,
+            (base_id, user_id)
+        )
+
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({"error": "Nie znaleziono bazy."}), 404
+
+        cursor.execute(
+            """
+            SELECT
+                cycle_number,
+                COUNT(*) AS completed_count,
+                MAX(completed_at) AS last_completed_at
+            FROM study_cycle_achievements
+            WHERE user_id = ?
+                AND base_id = ?
+            GROUP BY cycle_number
+            ORDER BY cycle_number ASC
+            """,
+            (user_id, int(base_id))
+        )
+    else:
+        cursor.execute(
+            """
+            SELECT
+                cycle_number,
+                COUNT(*) AS completed_count,
+                MAX(completed_at) AS last_completed_at
+            FROM study_cycle_achievements
+            WHERE user_id = ?
+                AND base_id IS NULL
+            GROUP BY cycle_number
+            ORDER BY cycle_number ASC
+            """,
+            (user_id,)
+        )
+
+    cycles = [
+        {
+            "cycleNumber": row["cycle_number"],
+            "completedCount": row["completed_count"],
+            "lastCompletedAt": row["last_completed_at"],
+        }
+        for row in cursor.fetchall()
+    ]
+    conn.close()
+
+    return jsonify({"cycles": cycles})
+
+
+@app.route("/api/study-sessions/legacy-stats", methods=["GET"])
+def get_legacy_study_session_stats():
+    user_id = get_request_user_id()
+
+    if user_id is None:
+        return auth_required_response()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        """
+        SELECT
+            study_sessions.id,
+            study_sessions.base_id,
+            COALESCE(word_bases.name, 'Wszystkie') AS base_name,
+            study_sessions.words_count,
+            study_sessions.stages_count,
+            study_sessions.completed_at
+        FROM study_sessions
+        LEFT JOIN word_bases ON word_bases.id = study_sessions.base_id
+        WHERE study_sessions.user_id = ?
+        ORDER BY study_sessions.completed_at DESC
+        LIMIT 12
+        """,
+        (user_id,)
+    )
+    recent_sessions = [serialize_study_session(row) for row in cursor.fetchall()]
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM (
+            SELECT
+                DATE(completed_at) AS day,
+                COUNT(*) AS sessions,
+                SUM(words_count) AS words,
+                SUM(stages_count) AS stages
+            FROM study_sessions
+            WHERE user_id = ?
+            GROUP BY DATE(completed_at)
+            ORDER BY day DESC
+            LIMIT 30
+        )
+        ORDER BY day ASC
+        """,
+        (user_id,)
+    )
+    daily_progress = [
+        {
+            "day": row["day"],
+            "sessions": row["sessions"],
+            "words": row["words"] or 0,
+            "stages": row["stages"] or 0,
+        }
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(
+        """
+        SELECT
+            COALESCE(word_bases.name, 'Wszystkie') AS base_name,
+            COUNT(*) AS sessions,
+            SUM(study_sessions.words_count) AS words
+        FROM study_sessions
+        LEFT JOIN word_bases ON word_bases.id = study_sessions.base_id
+        WHERE study_sessions.user_id = ?
+        GROUP BY COALESCE(study_sessions.base_id, 0), base_name
+        ORDER BY sessions DESC, words DESC
+        LIMIT 8
+        """,
+        (user_id,)
+    )
+    by_base = [
+        {
+            "baseName": row["base_name"],
+            "sessions": row["sessions"],
+            "words": row["words"] or 0,
+        }
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(
+        """
+        SELECT
+            COUNT(*) AS total_sessions,
+            COALESCE(SUM(words_count), 0) AS total_words,
+            COALESCE(SUM(stages_count), 0) AS total_stages,
+            MAX(completed_at) AS last_completed_at
+        FROM study_sessions
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+    totals_row = cursor.fetchone()
+    conn.close()
+
+    return jsonify({
+        "summary": {
+            "totalSessions": totals_row["total_sessions"],
+            "totalWords": totals_row["total_words"],
+            "totalStages": totals_row["total_stages"],
+            "lastCompletedAt": totals_row["last_completed_at"],
+        },
+        "dailyProgress": daily_progress,
+        "byBase": by_base,
+        "recentSessions": recent_sessions,
+    })
 
 
 @app.route("/api/translate-word", methods=["POST"])

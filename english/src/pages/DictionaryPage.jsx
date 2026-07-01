@@ -24,6 +24,7 @@ export default function DictionaryPage() {
   });
   const [search, setSearch] = useState("");
   const [bases, setBases] = useState([]);
+  const [baseCounts, setBaseCounts] = useState({});
   const [selectedBaseId, setSelectedBaseId] = useState("");
   const [selectedWordIds, setSelectedWordIds] = useState([]);
   const [editingWordId, setEditingWordId] = useState(null);
@@ -74,9 +75,11 @@ export default function DictionaryPage() {
     async function loadBases() {
       try {
         const data = await fetchWordBases();
+        const counts = await fetchBaseWordCounts(data.bases);
 
         if (!ignore) {
           setBases(data.bases);
+          setBaseCounts(counts);
         }
       } catch (loadError) {
         if (!ignore) {
@@ -201,6 +204,7 @@ export default function DictionaryPage() {
     try {
       await deleteWords(selectedWordIds);
       await loadWords(pagination.page);
+      setBaseCounts(await fetchBaseWordCounts(bases));
     } catch (deleteError) {
       console.error(deleteError);
       setError("Nie udało się usunąć zaznaczonych słów.");
@@ -284,6 +288,7 @@ export default function DictionaryPage() {
       />
 
       <Dictionary
+        baseCounts={baseCounts}
         error={error}
         editEnglish={editEnglish}
         editPolish={editPolish}
@@ -437,7 +442,24 @@ function FilterBar({
   );
 }
 
+async function fetchBaseWordCounts(bases) {
+  const counts = await Promise.all(
+    bases.map(async (base) => {
+      try {
+        const data = await fetchWords({ baseId: base.id, page: 1, perPage: 1 });
+        return [base.id, data.pagination.total];
+      } catch (error) {
+        console.error(error);
+        return [base.id, null];
+      }
+    })
+  );
+
+  return Object.fromEntries(counts);
+}
+
 function Dictionary({
+  baseCounts,
   error,
   editEnglish,
   editPolish,
@@ -477,16 +499,17 @@ function Dictionary({
   }
 
   return (
-    <section className="space-y-4">
+    <section className="grid gap-4 lg:grid-cols-2">
       {words.map((item) => {
         const selected = selectedWordIds.includes(item.id);
         const isEditingThisWord = editingWordId === item.id;
+        const baseCount = baseCounts[item.baseId];
 
         return (
         <div
           key={item.id}
           onClick={() => onToggleWordSelection(item.id)}
-          className={`relative w-full min-w-0 cursor-pointer rounded-3xl border p-5 text-left transition duration-200 sm:p-6 sm:hover:scale-[1.02] ${
+          className={`relative flex h-full min-w-0 cursor-pointer flex-col rounded-xl border px-4 py-3 text-left shadow-lg transition duration-200 sm:hover:scale-[1.01] ${
             selected
               ? "border-[#78b7ee]/55 bg-[#351f34]/95 ring-2 ring-[#78b7ee]/20"
               : "border-[#40506a] bg-[#351f34]/82"
@@ -495,20 +518,21 @@ function Dictionary({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2">
-                <h3 className="min-w-0 text-2xl font-bold [overflow-wrap:anywhere]">
+                <h3 className="min-w-0 text-base font-bold text-white [overflow-wrap:anywhere]">
                   {item.english}
                 </h3>
 
                 <Camera className="h-4 w-4 shrink-0 text-[#74849a]" />
               </div>
 
-              <p className="mt-2 min-w-0 text-3xl text-[#9aa8bc] [overflow-wrap:anywhere]">
+              <p className="mt-1 min-w-0 text-sm text-[#9aa8bc] [overflow-wrap:anywhere]">
                 {item.polish}
               </p>
             </div>
 
-            <span className="w-fit max-w-full shrink-0 rounded-full bg-[#78b7ee]/20 px-4 py-2 text-sm font-bold text-[#9ed0ff] [overflow-wrap:anywhere]">
+            <span className="w-fit max-w-full shrink-0 rounded-full bg-[#33445f]/70 px-3 py-1 text-xs font-bold text-[#9aa8bc] [overflow-wrap:anywhere]">
               {item.baseName}
+              {Number.isFinite(baseCount) ? ` ${baseCount}` : ""}
             </span>
           </div>
 

@@ -8,6 +8,7 @@ import DictionaryPage from "./pages/DictionaryPage";
 import FlashPage from "./pages/FlashPage";
 import HomePage from "./pages/HomePage";
 import ScanPage from "./pages/ScanPage";
+import StatsPage from "./pages/StatsPage";
 import "./index.css";
 
 createRoot(document.getElementById('root')).render(
@@ -18,6 +19,7 @@ createRoot(document.getElementById('root')).render(
           <Route path="/" element={<HomePage />} />
           <Route path="/scan" element={<ScanPage />} />
           <Route path="/flash" element={<FlashPage />} />
+          <Route path="/stats" element={<StatsPage />} />
           <Route path="/dictionary" element={<DictionaryPage />} />
           <Route path="/book" element={<BookPage />} />
           <Route path="/account" element={<AccountPage />} />

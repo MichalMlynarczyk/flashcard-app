@@ -9,11 +9,13 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   deleteWordBase,
   fetchAllWords,
+  fetchStudyCycleStatus,
   fetchWordBases,
+  saveStudyCycle,
 } from "../features/words/services/wordsApi";
 
 export default function FlashPage() {
@@ -30,8 +32,13 @@ export default function FlashPage() {
   const [isLoadingBases, setIsLoadingBases] = useState(true);
   const [isLoadingWords, setIsLoadingWords] = useState(false);
   const [isDeletingBase, setIsDeletingBase] = useState(false);
+  const [isLoadingStudyCycles, setIsLoadingStudyCycles] = useState(false);
+  const [isSavingStudyCycle, setIsSavingStudyCycle] = useState(false);
+  const [studyCycleSaved, setStudyCycleSaved] = useState(false);
+  const [completedStudyCycles, setCompletedStudyCycles] = useState(new Set());
   const [baseToDelete, setBaseToDelete] = useState(null);
   const [error, setError] = useState("");
+  const savedStudyCycleKeysRef = useRef(new Set());
 
   useEffect(() => {
     let ignore = false;
@@ -72,6 +79,9 @@ export default function FlashPage() {
     setIsFlipped(false);
     setSessionMode(null);
     setStudySession(null);
+    setStudyCycleSaved(false);
+    setCompletedStudyCycles(new Set());
+    savedStudyCycleKeysRef.current = new Set();
 
     try {
       const data = await fetchAllWords({
@@ -89,9 +99,19 @@ export default function FlashPage() {
   }
 
   const currentWord = words[currentIndex];
-  const studyStages = useMemo(
-    () => buildStudyStages([...orderedWords].reverse()),
+  const studyOrderedWords = useMemo(
+    () =>
+      [...orderedWords].sort((firstWord, secondWord) => {
+        const firstId = Number(firstWord.id) || 0;
+        const secondId = Number(secondWord.id) || 0;
+
+        return firstId - secondId;
+      }),
     [orderedWords]
+  );
+  const studyStages = useMemo(
+    () => buildStudyStages(studyOrderedWords),
+    [studyOrderedWords]
   );
   const activeStudyStage = studySession
     ? studyStages[studySession.stageIndex]
@@ -116,6 +136,66 @@ export default function FlashPage() {
 
     return ((currentIndex + 1) / words.length) * 100;
   }, [currentIndex, words.length]);
+
+  useEffect(() => {
+    if (
+      sessionMode !== "study" ||
+      studySession?.transition?.type !== "cycle" ||
+      !activeStudyStage
+    ) {
+      return;
+    }
+
+    const cycleNumber = activeStudyStage.blockNumber;
+    const cycleKey = `${selectedBaseId ?? "all"}:${cycleNumber}`;
+
+    if (savedStudyCycleKeysRef.current.has(cycleKey)) {
+      return;
+    }
+
+    let ignore = false;
+    savedStudyCycleKeysRef.current.add(cycleKey);
+
+    async function persistStudyCycle() {
+      setIsSavingStudyCycle(true);
+      setStudyCycleSaved(false);
+
+      try {
+        await saveStudyCycle({
+          baseId: selectedBaseId === "all" ? null : selectedBaseId,
+          cycleNumber,
+          wordIds: getStudyCycleWordIds(cycleNumber, studyStages),
+        });
+
+        if (!ignore) {
+          setStudyCycleSaved(true);
+          setCompletedStudyCycles((currentCycles) => {
+            const nextCycles = new Set(currentCycles);
+            nextCycles.add(cycleNumber);
+            return nextCycles;
+          });
+        }
+      } catch (saveError) {
+        console.error(saveError);
+      } finally {
+        if (!ignore) {
+          setIsSavingStudyCycle(false);
+        }
+      }
+    }
+
+    persistStudyCycle();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    activeStudyStage,
+    selectedBaseId,
+    sessionMode,
+    studySession?.transition,
+    studyStages,
+  ]);
 
   function goToCard(nextIndex) {
     if (words.length === 0) return;
@@ -154,17 +234,46 @@ export default function FlashPage() {
     setIsFlipped(false);
   }
 
-  function startStudyMode() {
+  async function openStudyCycleSelection() {
     if (studyStages.length === 0) return;
+
+    setSessionMode("study-setup");
+    setStudySession(null);
+    setIsFlipped(false);
+    setIsLoadingStudyCycles(true);
+    setCompletedStudyCycles(new Set());
+
+    try {
+      const data = await fetchStudyCycleStatus({
+        baseId: selectedBaseId === "all" ? undefined : selectedBaseId,
+      });
+      setCompletedStudyCycles(
+        new Set(data.cycles.map((cycle) => cycle.cycleNumber))
+      );
+    } catch (loadError) {
+      console.error(loadError);
+    } finally {
+      setIsLoadingStudyCycles(false);
+    }
+  }
+
+  function startStudyMode(blockNumber = 1) {
+    const startStageIndex = studyStages.findIndex(
+      (stage) => stage.blockNumber === blockNumber
+    );
+
+    if (startStageIndex < 0) return;
 
     setSessionMode("study");
     setStudySession({
-      stageIndex: 0,
+      stageIndex: startStageIndex,
       roundIndex: 0,
       knownWordIds: [],
       currentIndex: 0,
       isComplete: false,
     });
+    setStudyCycleSaved(false);
+    savedStudyCycleKeysRef.current = new Set();
     setIsFlipped(false);
   }
 
@@ -206,6 +315,42 @@ export default function FlashPage() {
         ...studySession,
         knownWordIds: nextKnownWordIds,
         currentIndex: 0,
+        transition: {
+          nextStageIndex: null,
+          type: "cycle",
+        },
+        isComplete: false,
+      });
+      setIsFlipped(false);
+      return;
+    }
+
+    const nextStudyStage = studyStages[nextStageIndex];
+    const transitionType =
+      nextStudyStage?.blockNumber !== activeStudyStage.blockNumber
+        ? "cycle"
+        : "stage";
+
+    setStudySession({
+      ...studySession,
+      knownWordIds: nextKnownWordIds,
+      transition: {
+        nextStageIndex,
+        type: transitionType,
+      },
+      isComplete: false,
+    });
+    setIsFlipped(false);
+  }
+
+  function continueStudyTransition() {
+    if (!studySession?.transition) return;
+
+    if (studySession.transition.nextStageIndex === null) {
+      setStudySession({
+        ...studySession,
+        transition: null,
+        currentIndex: 0,
         isComplete: true,
       });
       setIsFlipped(false);
@@ -213,7 +358,7 @@ export default function FlashPage() {
     }
 
     setStudySession({
-      stageIndex: nextStageIndex,
+      stageIndex: studySession.transition.nextStageIndex,
       roundIndex: 0,
       knownWordIds: [],
       currentIndex: 0,
@@ -323,9 +468,18 @@ export default function FlashPage() {
             sessionMode === null && (
               <ModeSelectionCard
                 onStartNormal={startNormalMode}
-                onStartStudy={startStudyMode}
+                onStartStudy={openStudyCycleSelection}
               />
             )}
+
+          {sessionMode === "study-setup" && (
+            <StudyCycleSelection
+              completedCycleNumbers={completedStudyCycles}
+              isLoadingStatus={isLoadingStudyCycles}
+              stages={studyStages}
+              onSelectCycle={startStudyMode}
+            />
+          )}
 
           {sessionMode === "normal" && (
             <>
@@ -366,6 +520,19 @@ export default function FlashPage() {
 
           {sessionMode === "study" &&
             !studySession?.isComplete &&
+            studySession?.transition && (
+              <StudyTransitionCard
+                isSaved={studyCycleSaved}
+                isSaving={isSavingStudyCycle}
+                nextStage={studyStages[studySession.transition.nextStageIndex]}
+                type={studySession.transition.type}
+                onContinue={continueStudyTransition}
+              />
+            )}
+
+          {sessionMode === "study" &&
+            !studySession?.isComplete &&
+            !studySession?.transition &&
             activeStudyStage &&
             currentStudyWord && (
               <>
@@ -575,6 +742,79 @@ function ModeSelectionCard({ onStartNormal, onStartStudy }) {
   );
 }
 
+function StudyCycleSelection({
+  completedCycleNumbers,
+  isLoadingStatus,
+  onSelectCycle,
+  stages,
+}) {
+  const cycles = buildStudyCycleOptions(stages);
+
+  return (
+    <section className="rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-6 shadow-xl">
+      <div className="mb-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#9ed0ff]">
+          Tryb nauka
+        </p>
+        <h2 className="mt-2 text-2xl font-bold text-white">
+          Wybierz cykl startowy
+        </h2>
+        <p className="mt-2 text-[#9aa8bc]">
+          Zacznij od pakietu 0-20, 20-40, 40-60 albo kolejnego dostępnego zakresu.
+        </p>
+        {isLoadingStatus && (
+          <p className="mt-2 text-sm font-semibold text-amber-200">
+            Sprawdzanie powtórek...
+          </p>
+        )}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {cycles.map((cycle) => {
+          const isReview = completedCycleNumbers.has(cycle.blockNumber);
+
+          return (
+            <button
+              key={cycle.blockNumber}
+              type="button"
+              onClick={() => onSelectCycle(cycle.blockNumber)}
+              className={`relative flex min-h-36 flex-col items-start justify-between rounded-3xl border p-5 text-left shadow-lg transition hover:scale-[1.02] ${
+                isReview
+                  ? "border-amber-300/70 bg-[#3b301d]/85 hover:border-amber-200 hover:bg-[#46371f]"
+                  : "border-[#40506a] bg-[#111827]/70 hover:border-[#78b7ee]/65 hover:bg-[#78b7ee]/12"
+              }`}
+            >
+              {isReview && (
+                <span className="absolute right-4 top-4 rounded-full bg-amber-300 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[#111827]">
+                  Powtórka
+                </span>
+              )}
+
+              <GraduationCap
+                className={`h-7 w-7 ${
+                  isReview ? "text-amber-200" : "text-[#9ed0ff]"
+                }`}
+              />
+              <span>
+                <span className="block text-2xl font-bold text-white">
+                  {cycle.offsetLabel}
+                </span>
+                <span
+                  className={`mt-2 block text-sm leading-6 ${
+                    isReview ? "text-amber-100/80" : "text-[#9aa8bc]"
+                  }`}
+                >
+                  {cycle.wordsCount} słów · {cycle.stagesCount} etapów
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function FlashSessionHeader({ baseName, onChangeBase }) {
   return (
     <section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-[#40506a] bg-[#1c2636]/90 p-5">
@@ -647,6 +887,75 @@ function StudyControls({ onNext }) {
         Następna
         <ChevronRight className="h-5 w-5" />
       </button>
+    </section>
+  );
+}
+
+function StudyTransitionCard({ isSaved, isSaving, nextStage, onContinue, type }) {
+  const isCycleTransition = type === "cycle";
+  const title = isCycleTransition
+    ? "Gratulacje!"
+    : "Przechodzimy do kolejnego etapu";
+  const description = isCycleTransition
+    ? "Cykl 20 słów ukończony. Możesz przejść do kolejnego cyklu."
+    : "Ten etap jest za Tobą. Za chwilę zaczynasz następny krok nauki.";
+  const buttonLabel = isCycleTransition
+    ? "Przejdź do kolejnego cyklu"
+    : "Przejdź dalej";
+  const cardClassName = isCycleTransition
+    ? "border-amber-300/60 bg-gradient-to-br from-[#4a3718]/95 via-[#2a241b]/95 to-[#1c2636]/95 shadow-amber-500/20"
+    : "border-emerald-300/50 bg-gradient-to-br from-[#14352b]/95 via-[#18302c]/95 to-[#1c2636]/95 shadow-emerald-500/15";
+  const iconClassName = isCycleTransition
+    ? "bg-amber-300 text-[#111827]"
+    : "bg-emerald-300 text-[#10231d]";
+  const buttonClassName = isCycleTransition
+    ? "bg-amber-300 text-[#111827] hover:bg-amber-200"
+    : "bg-emerald-300 text-[#10231d] hover:bg-emerald-200";
+
+  return (
+    <section className="flex justify-center pt-6">
+      <div
+        className={`flex min-h-[360px] w-full max-w-3xl flex-col items-center justify-center rounded-[32px] border p-8 text-center shadow-2xl md:p-10 ${cardClassName}`}
+      >
+        <span
+          className={`flex h-16 w-16 items-center justify-center rounded-3xl ${iconClassName}`}
+        >
+          <CheckCircle2 className="h-9 w-9" />
+        </span>
+
+        <h2 className="mt-6 text-3xl font-bold text-white md:text-4xl">
+          {title}
+        </h2>
+
+        <p className="mt-4 max-w-xl text-base leading-7 text-[#d1d9e5]">
+          {description}
+        </p>
+
+        {nextStage && (
+          <p className="mt-4 rounded-2xl bg-[#111827]/45 px-4 py-2 text-sm font-semibold text-[#c5d3e4]">
+            Następny etap: {nextStage.label}
+          </p>
+        )}
+
+        {isCycleTransition && (
+          <p className="mt-4 text-sm font-semibold text-amber-100">
+            {isSaved
+              ? "Cykl zapisany w statystykach."
+              : isSaving
+                ? "Zapisywanie cyklu w statystykach..."
+                : "Cykl zostanie zapisany w statystykach."}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className={`mt-7 inline-flex items-center gap-2 rounded-2xl px-5 py-3 font-bold transition ${buttonClassName}`}
+        >
+          {buttonLabel}
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
     </section>
   );
 }
@@ -1020,6 +1329,60 @@ function createStudyStage({ blockNumber, kind, offset, words }) {
     rangeLabel,
     words,
   };
+}
+
+function getStudyCycleWordIds(blockNumber, studyStages) {
+  const wordIds = [];
+  const seenIds = new Set();
+
+  studyStages
+    .filter((stage) => stage.blockNumber === blockNumber)
+    .forEach((stage) => {
+      stage.words.forEach((word) => {
+        if (word.id === undefined || seenIds.has(word.id)) return;
+
+        seenIds.add(word.id);
+        wordIds.push(word.id);
+      });
+    });
+
+  return wordIds;
+}
+
+function buildStudyCycleOptions(studyStages) {
+  const cycles = new Map();
+
+  studyStages.forEach((stage) => {
+    if (!cycles.has(stage.blockNumber)) {
+      const zeroBasedStart = (stage.blockNumber - 1) * 20;
+
+      cycles.set(stage.blockNumber, {
+        blockNumber: stage.blockNumber,
+        offsetLabel: `${zeroBasedStart}-${zeroBasedStart + 20}`,
+        stagesCount: 0,
+        wordKeys: new Set(),
+      });
+    }
+
+    const cycle = cycles.get(stage.blockNumber);
+    cycle.stagesCount += 1;
+
+    stage.words.forEach((word) => {
+      cycle.wordKeys.add(getWordKey(word));
+    });
+  });
+
+  return Array.from(cycles.values()).map((cycle) => {
+    const zeroBasedStart = (cycle.blockNumber - 1) * 20;
+    const wordsCount = cycle.wordKeys.size;
+
+    return {
+      blockNumber: cycle.blockNumber,
+      offsetLabel: `${zeroBasedStart}-${zeroBasedStart + wordsCount}`,
+      stagesCount: cycle.stagesCount,
+      wordsCount,
+    };
+  });
 }
 
 function getWordKey(word) {

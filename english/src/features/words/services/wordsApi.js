@@ -212,3 +212,54 @@ export async function updateWord(id, { baseId, baseName, english, polish }) {
 
   return response.json();
 }
+
+export async function saveStudyCycle({ baseId, cycleNumber, wordIds }) {
+  const response = await fetch(`${API_URL}/study-cycles`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...requireAuthHeaders(),
+    },
+    body: JSON.stringify({ baseId, cycleNumber, wordIds }),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "Nie udało się zapisać cyklu nauki.");
+  }
+
+  return response.json();
+}
+
+export async function fetchStudyCycleStatus({ baseId } = {}) {
+  const params = new URLSearchParams();
+
+  if (baseId) {
+    params.set("base_id", String(baseId));
+  }
+
+  const query = params.toString();
+  const response = await fetch(
+    `${API_URL}/study-cycles/status${query ? `?${query}` : ""}`,
+    {
+      headers: requireAuthHeaders(),
+    }
+  );
+
+  if (!response.ok) {
+    await throwApiError(response, "Nie udało się pobrać statusu cykli.");
+  }
+
+  return response.json();
+}
+
+export async function fetchStudyStats() {
+  const response = await fetch(`${API_URL}/study-sessions/stats`, {
+    headers: requireAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    await throwApiError(response, "Nie udało się pobrać statystyk nauki.");
+  }
+
+  return response.json();
+}
