@@ -10,7 +10,7 @@ docker compose up -d --build
 Open:
 
 ```text
-http://localhost
+http://localhost:8081
 ```
 
 The backend is also exposed on:
@@ -22,7 +22,7 @@ http://localhost:5001
 On the current server, open:
 
 ```text
-http://45.93.139.211/
+http://45.93.139.211:8081/
 ```
 
 The frontend build uses:
