@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://45.93.139.211:5001/api";
 export const AUTH_USER_STORAGE_KEY = "brainlift-auth-user";
 export const AUTH_TOKEN_STORAGE_KEY = "brainlift-auth-token";
 export const AUTH_SESSION_CHANGE_EVENT = "brainlift-auth-session-change";

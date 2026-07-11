@@ -36,6 +36,7 @@ const WORD_POPUP_MARGIN = 12;
 const PAGE_SWIPE_THRESHOLD = 72;
 const PAGE_SWIPE_VERTICAL_RATIO = 1.35;
 const COARSE_POINTER_QUERY = "(pointer: coarse)";
+const FALLBACK_CONTEXT_WORDS = 18;
 
 export default function BookPage() {
   const [books, setBooks] = useState([]);
@@ -218,6 +219,7 @@ function BookPreview({
   });
   const translationRequestRef = useRef(0);
   const [pageWords, setPageWords] = useState([]);
+  const [pageText, setPageText] = useState("");
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [pageViewportSize, setPageViewportSize] = useState({
     width: 0,
@@ -260,7 +262,8 @@ function BookPreview({
         const data = await fetchBookPageWords(book.filename, currentPage);
 
         if (!ignore) {
-          setPageWords(data.words);
+          setPageWords(data.words ?? []);
+          setPageText(data.pageText ?? "");
           setPageSize({ width: data.width, height: data.height });
         }
       } catch (loadError) {
@@ -268,6 +271,7 @@ function BookPreview({
           console.error(loadError);
           setReaderError("Nie udało się odczytać słów z tej strony.");
           setPageWords([]);
+          setPageText("");
         }
       } finally {
         if (!ignore) {
@@ -411,7 +415,7 @@ function BookPreview({
     return window.matchMedia?.(COARSE_POINTER_QUERY).matches ?? false;
   }
 
-  async function selectWord(word, event) {
+  async function selectWord(word, wordIndex, event) {
     event.stopPropagation();
 
     if (Date.now() - panRef.current.lastDragEndedAt < 150) return;
@@ -435,8 +439,16 @@ function BookPreview({
           )
         : event.clientY + WORD_POPUP_MARGIN;
 
+    const sentence = getSelectedWordSentence({
+      pageText,
+      pageWords,
+      word,
+      wordIndex,
+    });
+
     setSelectedWord({
       ...word,
+      sentence,
       popupLeft,
       popupTop,
       popupWidth,
@@ -446,7 +458,10 @@ function BookPreview({
     setReaderError("");
 
     try {
-      const data = await translateWord(word.text);
+      const data = await translateWord({
+        english: word.text,
+        sentence,
+      });
 
       if (translationRequestRef.current === nextRequestId) {
         setPolish(data.polish ?? "");
@@ -667,7 +682,7 @@ function BookPreview({
                   key={`${word.text}-${index}-${currentPage}`}
                   type="button"
                   data-word-hit="true"
-                  onClick={(event) => selectWord(word, event)}
+                  onClick={(event) => selectWord(word, index, event)}
                   title={`Dodaj "${word.text}"`}
                   className={`absolute rounded-sm transition hover:bg-[#78b7ee]/25 hover:ring-2 hover:ring-[#78b7ee]/70 ${
                     selected ? "bg-[#78b7ee]/25 ring-2 ring-[#78b7ee]" : ""
@@ -879,6 +894,83 @@ function BookPreview({
       )}
     </div>
   );
+}
+
+function getSelectedWordSentence({ pageText, pageWords, word, wordIndex }) {
+  const sentenceFromPageText = extractSentenceFromPageText({
+    pageText,
+    pageWords,
+    word,
+    wordIndex,
+  });
+
+  if (sentenceFromPageText) {
+    return sentenceFromPageText;
+  }
+
+  return buildFallbackContext(pageWords, wordIndex);
+}
+
+function extractSentenceFromPageText({ pageText, pageWords, word, wordIndex }) {
+  const normalizedWord = normalizeComparableWord(word.text);
+
+  if (!pageText || !normalizedWord) {
+    return "";
+  }
+
+  const occurrenceNumber = pageWords
+    .slice(0, wordIndex + 1)
+    .filter((pageWord) => normalizeComparableWord(pageWord.text) === normalizedWord)
+    .length;
+
+  const wordMatches = Array.from(
+    pageText.matchAll(/[A-Za-z]+(?:[-'][A-Za-z]+)?/g)
+  ).filter((match) => normalizeComparableWord(match[0]) === normalizedWord);
+  const selectedMatch = wordMatches[occurrenceNumber - 1] ?? wordMatches[0];
+
+  if (!selectedMatch) {
+    return "";
+  }
+
+  const sentenceStart = findSentenceStart(pageText, selectedMatch.index);
+  const sentenceEnd = findSentenceEnd(pageText, selectedMatch.index);
+
+  return pageText.slice(sentenceStart, sentenceEnd).replace(/\s+/g, " ").trim();
+}
+
+function findSentenceStart(text, selectedWordIndex) {
+  for (let index = selectedWordIndex - 1; index >= 0; index -= 1) {
+    if (/[.!?]/.test(text[index])) {
+      return index + 1;
+    }
+  }
+
+  return 0;
+}
+
+function findSentenceEnd(text, selectedWordIndex) {
+  for (let index = selectedWordIndex; index < text.length; index += 1) {
+    if (/[.!?]/.test(text[index])) {
+      return index + 1;
+    }
+  }
+
+  return text.length;
+}
+
+function buildFallbackContext(pageWords, wordIndex) {
+  const startIndex = Math.max(wordIndex - FALLBACK_CONTEXT_WORDS, 0);
+  const endIndex = Math.min(wordIndex + FALLBACK_CONTEXT_WORDS + 1, pageWords.length);
+
+  return pageWords
+    .slice(startIndex, endIndex)
+    .map((pageWord) => pageWord.text)
+    .join(" ")
+    .trim();
+}
+
+function normalizeComparableWord(value) {
+  return (value ?? "").toLowerCase().replace(/[^a-z'-]/g, "");
 }
 
 function loadBookmarks() {

@@ -4,7 +4,7 @@ import {
   getAuthToken,
 } from "../../auth/services/authApi";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://45.93.139.211:5001/api";
 
 export class AuthRequiredError extends Error {
   constructor(message = "Zaloguj się, żeby zapisywać zmiany.") {
@@ -103,14 +103,14 @@ export async function createWord({ baseId, baseName, english, polish }) {
   return response.json();
 }
 
-export async function translateWord(english) {
+export async function translateWord({ english, sentence }) {
   const response = await fetch(`${API_URL}/translate-word`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-    body: JSON.stringify({ english }),
+    body: JSON.stringify({ english, sentence }),
   });
 
   if (!response.ok) {

@@ -14,6 +14,7 @@ from flask import jsonify
 from paddleocr import PaddleOCR
 import sqlite3
 import json
+import fitz
 from openai import OpenAI
 from dotenv import load_dotenv
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -743,6 +744,27 @@ def render_pdf_page(filename, page, dpi=140):
     return output_path, book
 
 
+def get_pdf_page_text(filename, page):
+    if not filename:
+        return ""
+
+    pdf_path = os.path.join(BOOKS_DIR, filename)
+
+    if not os.path.isfile(pdf_path):
+        return ""
+
+    try:
+        with fitz.open(pdf_path) as document:
+            if page < 1 or page > document.page_count:
+                return ""
+
+            text = document.load_page(page - 1).get_text("text") or ""
+            return re.sub(r"\s+", " ", text).strip()
+    except Exception as error:
+        print("ERROR read pdf page text:", error)
+        return ""
+
+
 @app.route("/api/books", methods=["GET"])
 def get_books():
     return jsonify({"books": get_books_catalog()})
@@ -786,7 +808,12 @@ def get_book_page_words(filename, page):
 
         if os.path.isfile(prepared_words_path):
             try:
-                return jsonify(read_json_file(prepared_words_path))
+                words_data = read_json_file(prepared_words_path)
+                words_data["pageText"] = get_pdf_page_text(
+                    prepared_book.get("sourcePdf"),
+                    page
+                )
+                return jsonify(words_data)
             except (OSError, json.JSONDecodeError) as error:
                 print("ERROR read prepared page words:", error)
                 return jsonify({"error": "Nie udało się odczytać słów."}), 500
@@ -854,6 +881,7 @@ def get_book_page_words(filename, page):
     return jsonify({
         "width": width,
         "height": height,
+        "pageText": get_pdf_page_text(filename, page),
         "words": words
     })
 
@@ -2040,6 +2068,8 @@ def get_legacy_study_session_stats():
 def translate_word():
     data = request.get_json(silent=True) or {}
     english = (data.get("english") or "").strip()
+    sentence = re.sub(r"\s+", " ", (data.get("sentence") or "")).strip()
+    sentence = sentence[:1200]
 
     if not english:
         return jsonify({"error": "Podaj słowo albo zwrot po angielsku."}), 400
@@ -2055,10 +2085,12 @@ Jesteś nauczycielem angielskiego dla polskiego użytkownika.
 Przetłumacz angielskie słowo albo zwrot na polski.
 
 Zasady:
+- jeśli podano zdanie, tłumacz zaznaczone słowo dokładnie w znaczeniu, jakie ma w tym zdaniu
 - jeśli wejście jest zwrotem, idiomem, kolokacją albo phrasal verb, tłumacz cały zwrot jako całość, a nie słowo po słowie
 - zachowaj sens edukacyjny do fiszek; podawaj naturalny polski odpowiednik w formie słownikowej
 - dla czasowników używaj polskiego bezokolicznika, np. "cierpieć", "opiekować się", "poruszać się"
 - dla rzeczowników używaj podstawowej formy, np. "gardło", "historia"
+- jeśli forma w zdaniu jest imiesłowem albo przymiotnikiem, możesz oddać ją naturalną polską formą, np. "zmęczony", "ukryty", "wzmocniony"
 - zachowuj placeholdery typu "sb", "sth", "something", "somebody" jako polskie "kogoś", "coś", "kimś", "czymś" zależnie od zwrotu
 - nie dopisuj przykładów, objaśnień ani alternatyw, chyba że są konieczne; wtedy rozdziel je średnikiem
 - przykłady poprawnego podejścia:
@@ -2074,7 +2106,13 @@ Format:
                 },
                 {
                     "role": "user",
-                    "content": english,
+                    "content": json.dumps(
+                        {
+                            "selectedWord": english,
+                            "sentence": sentence,
+                        },
+                        ensure_ascii=False,
+                    ),
                 },
             ],
         )
